@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Guinea Pig Buffet</title>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Architects+Daughter&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -24,7 +24,7 @@ body{
     radial-gradient(ellipse at 80% 70%, #6a9060 0%, transparent 45%),
     radial-gradient(ellipse at 50% 10%, #90b882 0%, transparent 40%),
     radial-gradient(ellipse at 10% 80%, #6b9564 0%, transparent 35%);
-  font-family:'Caveat',cursive;
+  font-family:'Architects Daughter',cursive;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -52,8 +52,8 @@ body{
 }
 
 .hud-block{display:flex;align-items:center;gap:6px}
-.hud-label{font-size:11px;font-family:'Caveat',cursive;opacity:0.5;text-transform:lowercase;letter-spacing:0.5px}
-.hud-val{font-size:18px;color:var(--ink);font-weight:700;font-family:'Architects Daughter',cursive}
+.hud-label{font-size:13px;font-family:'Architects Daughter',cursive;opacity:1;color:var(--ink-mid);text-transform:lowercase;letter-spacing:0.5px}
+.hud-val{font-size:22px;color:var(--ink);font-weight:700;font-family:'Architects Daughter',cursive}
 
 #round-badge{
   background:var(--ink);
@@ -105,7 +105,7 @@ canvas{
 #overlay.hidden{display:none}
 
 #overlay h2{
-  font-family:'Caveat',cursive;
+  font-family:'Architects Daughter',cursive;
   font-size:clamp(2.8rem,8vw,5rem);
   font-weight:700;
   color:#2a1a0a;
@@ -135,7 +135,7 @@ canvas{
   min-width:110px;
 }
 #overlay .score-card:nth-child(even){transform:rotate(0.8deg)}
-#overlay .score-card span{display:block;font-family:'Caveat',cursive;font-size:13px;opacity:0.6;margin-bottom:2px}
+#overlay .score-card span{display:block;font-family:'Architects Daughter',cursive;font-size:13px;color:#3d2f1a;opacity:1;margin-bottom:2px}
 
 #start-btn{
   font-family:'Architects Daughter',cursive;
@@ -238,6 +238,9 @@ let scoreDisplay={};
 // total scores across rounds
 let playerTotal=0;
 let rivalTotals=[0,0,0];
+// penalties incurred this round (reset each round)
+let playerPenalty=0;
+let rivalPenalties=[0,0,0];
 
 // ── grass tile pattern (unused - kept for reference) ──────────────────────
 
@@ -531,19 +534,19 @@ function spawnFloaty(x,y,text,color='#ff4444'){
 }
 function updateFloaties(){
   floaties=floaties.filter(f=>f.life>0);
-  floaties.forEach(f=>f.life-=0.018);
+  floaties.forEach(f=>f.life-=0.008); // slower fade — was 0.018
 }
 function drawFloaties(){
   floaties.forEach(f=>{
     ctx.save();
     ctx.globalAlpha=f.life;
-    ctx.font=`bold 20px 'Special Elite',cursive`;
+    ctx.font=`bold 28px 'Architects Daughter',cursive`;
     ctx.fillStyle=f.color;
-    ctx.strokeStyle='rgba(245,240,232,0.8)';
-    ctx.lineWidth=3;
+    ctx.strokeStyle='rgba(245,240,232,0.9)';
+    ctx.lineWidth=4;
     ctx.textAlign='center';
     ctx.textBaseline='middle';
-    let yOff=(1-f.life)*55;
+    let yOff=(1-f.life)*80;
     ctx.strokeText(f.text,f.x,f.y-yOff);
     ctx.fillText(f.text,f.x,f.y-yOff);
     ctx.restore();
@@ -551,14 +554,23 @@ function drawFloaties(){
 }
 
 function launchHawk(){
-  // Start near center of field so it can never immediately exit
+  // Enter from a random edge, aimed inward
+  let side=rndInt(0,3);
+  let sx,sy,ivx,ivy;
+  let pad=60;
+  if(side===0){sx=rnd(pad,W-pad);sy=0;ivx=rnd(-0.5,0.5);ivy=1;}
+  else if(side===1){sx=W;sy=rnd(pad,H-pad);ivx=-1;ivy=rnd(-0.5,0.5);}
+  else if(side===2){sx=rnd(pad,W-pad);sy=H;ivx=rnd(-0.5,0.5);ivy=-1;}
+  else{sx=0;sy=rnd(pad,H-pad);ivx=1;ivy=rnd(-0.5,0.5);}
+
+  let spd=1.4+round*0.1; // slower base speed
+  let mag=Math.hypot(ivx,ivy)||1;
   hawk={
     active:true,
-    x:rnd(W*0.3,W*0.7),
-    y:rnd(H*0.3,H*0.7),
-    vx:rnd(-1,1)||1,
-    vy:rnd(-1,1)||1,
-    speed:1.8+round*0.15,
+    x:sx, y:sy,
+    vx:(ivx/mag)*spd,
+    vy:(ivy/mag)*spd,
+    speed:spd,
     trail:[],
   };
 
@@ -582,12 +594,12 @@ function launchHawk(){
 function updateHawk(){
   if(!hawk.active) return;
 
-  // Count unresolved targets (not hiding, not caught)
+  // Targets = unhidden AND uncaught only
   let targets=[];
   if(!player.hiding && !player.caught) targets.push(player);
   rivals.forEach(r=>{ if(!r.hiding && !r.caught) targets.push(r); });
 
-  // End round only in real hawk phase when everything is resolved
+  // End round in real hawk phase when all resolved
   if(phase==='hawk' && targets.length===0){
     hawk.active=false;
     dangerEl.classList.remove('active');
@@ -599,50 +611,35 @@ function updateHawk(){
     return;
   }
 
-  // Pick nearest target to chase; during grace just orbit center
+  // Steer toward nearest target; during grace orbit center
   let target=null;
   if(phase==='hawk' && targets.length>0){
     let nd=Infinity;
     targets.forEach(t=>{ let d=dist(hawk,t); if(d<nd){nd=d;target=t;} });
   }
 
-  // Turn toward target (strong turn rate so it actually curves)
-  let prevVx=hawk.vx, prevVy=hawk.vy;
   if(target){
     let dx=target.x-hawk.x, dy=target.y-hawk.y, d=Math.hypot(dx,dy)||1;
-    hawk.vx += (dx/d) * 0.25;
-    hawk.vy += (dy/d) * 0.25;
+    hawk.vx += (dx/d)*0.25;
+    hawk.vy += (dy/d)*0.25;
   } else {
-    // No target yet — drift toward center
     let dx=W/2-hawk.x, dy=H/2-hawk.y, d=Math.hypot(dx,dy)||1;
-    hawk.vx += (dx/d) * 0.1;
-    hawk.vy += (dy/d) * 0.1;
+    hawk.vx += (dx/d)*0.1;
+    hawk.vy += (dy/d)*0.1;
   }
-
-  // Debug: log hawk state every 120 frames
-  if(!hawk._dbgFrame) hawk._dbgFrame=0;
-  hawk._dbgFrame++;
-  if(hawk._dbgFrame%120===0){
-    console.log('HAWK phase:',phase,'pos:',Math.round(hawk.x),Math.round(hawk.y),
-      'vel:',hawk.vx.toFixed(2),hawk.vy.toFixed(2),
-      'targets:',targets.length, 'active:',hawk.active);
-  }
-
-  // Hard wall bounce — never exits
-  if(hawk.x < 50)   hawk.vx = Math.abs(hawk.vx);
-  if(hawk.x > W-50) hawk.vx = -Math.abs(hawk.vx);
-  if(hawk.y < 50)   hawk.vy = Math.abs(hawk.vy);
-  if(hawk.y > H-50) hawk.vy = -Math.abs(hawk.vy);
 
   // Normalize to constant speed
   let spd=Math.hypot(hawk.vx,hawk.vy)||1;
   hawk.vx = hawk.vx/spd * hawk.speed;
   hawk.vy = hawk.vy/spd * hawk.speed;
 
+  // Move first, then bounce — this prevents corner trapping
   hawk.x += hawk.vx;
   hawk.y += hawk.vy;
-  hawk.x = clamp(hawk.x, 50, W-50);
-  hawk.y = clamp(hawk.y, 50, H-50);
+  if(hawk.x < 50)   { hawk.x=50;   hawk.vx= Math.abs(hawk.vx); }
+  if(hawk.x > W-50) { hawk.x=W-50; hawk.vx=-Math.abs(hawk.vx); }
+  if(hawk.y < 50)   { hawk.y=50;   hawk.vy= Math.abs(hawk.vy); }
+  if(hawk.y > H-50) { hawk.y=H-50; hawk.vy=-Math.abs(hawk.vy); }
 
   hawk.trail.push({x:hawk.x, y:hawk.y});
   if(hawk.trail.length>40) hawk.trail.shift();
@@ -653,15 +650,17 @@ function updateHawk(){
       player.caught=true;
       let penalty=Math.max(5,Math.round(player.score*0.25));
       player.score=Math.max(0,player.score-penalty);
+      playerPenalty+=penalty;
       spawnFloaty(player.x,player.y-10,`-${penalty} veggies`,'#9b2020');
       warningEl.textContent='CAUGHT!';
       setTimeout(()=>{ if(hawk.active) warningEl.textContent='HAWK!'; },1500);
     }
-    rivals.forEach(r=>{
+    rivals.forEach((r,ri)=>{
       if(!r.hiding && !r.caught && dist(hawk,r)<38){
         r.caught=true;
         let pen=Math.max(3,Math.round(r.score*0.25));
         r.score=Math.max(0,r.score-pen);
+        rivalPenalties[ri]+=pen;
         spawnFloaty(r.x,r.y-10,`-${pen}`,'#9b2020');
       }
     });
@@ -714,8 +713,13 @@ function initRound(){
 
   // hawk placeholder — launchHawk() fills it in properly
   hawk={active:false,x:-100,y:-100,vx:0,vy:0,trail:[]};
-  hawkInterval = Math.max(12000, 22000 - (round-1)*2000);
+  // Randomized hawk interval — base decreases each round but has ±5s variance
+  let baseInterval = Math.max(10000, 22000 - (round-1)*2000);
+  hawkInterval = baseInterval + rnd(-5000, 5000);
   hawkTimer = hawkInterval;
+
+  playerPenalty=0;
+  rivalPenalties=[0,0,0];
 
   dangerEl.classList.remove('active');
   warningEl.classList.remove('show');
@@ -837,79 +841,9 @@ function leaveHouse(entity){
 }
 
 function clampToWorld(e){
-  e.x=clamp(e.x,20,W-20);
-  e.y=clamp(e.y,20,H-20);
+  e.x=clamp(e.x,30,W-30);
+  e.y=clamp(e.y,30,H-30);
 }
-
-// ── hawk logic ────────────────────────────────────────────────────────────
-function launchHawk(){
-  let fromLeft=Math.random()<0.5;
-  // hawk speed: slow enough to give time to react, faster each round
-  let speed = 1.8 + round*0.2;
-  hawk.x=fromLeft?-80:W+80;
-  hawk.y=60+Math.random()*(H*0.45);
-  hawk.vx=fromLeft?speed:-speed;
-  hawk.active=true;
-  hawk.done=false;
-  // reset caught states for this pass
-  player.caught=false;
-  rivals.forEach(r=>r.caught=false);
-
-  dangerEl.classList.add('active');
-  warningEl.classList.add('show');
-  warningEl.textContent='🦅 HAWK!';
-  houses.forEach(h=>h.bounce=true);
-
-  if(firstHawk){
-    phase='hawk-grace';
-    firstHawk=false;
-    // extra 4 seconds grace on first hawk
-    setTimeout(()=>{if(phase==='hawk-grace') phase='hawk';},4000);
-  } else {
-    phase='hawk';
-  }
-}
-
-function updateHawk(){
-  if(!hawk.active) return;
-  hawk.x+=hawk.vx;
-  // hawk gone off screen — this ends the round
-  if(hawk.x<-120||hawk.x>W+120){
-    hawk.active=false;
-    dangerEl.classList.remove('active');
-    warningEl.classList.remove('show');
-    houses.forEach(h=>{h.bounce=false; h.occupant=null;});
-    // release everyone
-    if(player.hiding) leaveHouse(player);
-    rivals.forEach(r=>{if(r.hiding)leaveHouse(r);});
-    // round is over!
-    endRound();
-    return;
-  }
-
-  // catch unsheltered guinea pigs during hawk phase
-  if(phase==='hawk'){
-    // check player
-    if(!player.hiding && !player.caught){
-      if(Math.abs(hawk.x-player.x)<52&&Math.abs(hawk.y-player.y)<60){
-        player.caught=true;
-        player.score=Math.max(0,player.score-4);
-        showCaughtEffect('player');
-      }
-    }
-    // check rivals
-    rivals.forEach(r=>{
-      if(!r.hiding && !r.caught){
-        if(Math.abs(hawk.x-r.x)<52&&Math.abs(hawk.y-r.y)<60){
-          r.caught=true;
-          r.score=Math.max(0,r.score-3);
-        }
-      }
-    });
-  }
-}
-
-// (caught feedback now via spawnFloaty — see updateHawk)
 
 // ── player input ──────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
@@ -993,24 +927,29 @@ function showRoundResult(){
   }
 
   let allGPs=[
-    {name:'You', gp:player, score:player.score, total:playerTotal},
-    {name:'Ginger', gp:rivals[0], score:rivals[0].score, total:rivalTotals[0]},
-    {name:'Rosie',  gp:rivals[1], score:rivals[1].score, total:rivalTotals[1]},
-    {name:'Biscuit',gp:rivals[2], score:rivals[2].score, total:rivalTotals[2]},
+    {name:'You', gp:player, score:player.score, total:playerTotal, penalty:playerPenalty},
+    {name:'Ginger', gp:rivals[0], score:rivals[0].score, total:rivalTotals[0], penalty:rivalPenalties[0]},
+    {name:'Rosie',  gp:rivals[1], score:rivals[1].score, total:rivalTotals[1], penalty:rivalPenalties[1]},
+    {name:'Biscuit',gp:rivals[2], score:rivals[2].score, total:rivalTotals[2], penalty:rivalPenalties[2]},
   ].map(p=>({...p, status:safeStatus(p.gp)}))
    .sort((a,b)=>b.score-a.score);
 
   function safeTag(status){
-    if(status==='safe')   return '<span style="color:#86efac">✓ safe</span>';
-    if(status==='caught') return '<span style="color:#fca5a5">✗ caught</span>';
-    return '<span style="color:#fde68a">~ outside</span>';
+    if(status==='safe')   return '<span style="color:#1a6b2a;font-weight:700">✓ safe</span>';
+    if(status==='caught') return '<span style="color:#8b1a1a;font-weight:700">✗ caught</span>';
+    return '<span style="color:#5a4a10;font-weight:700">~ outside</span>';
+  }
+
+  function penaltyLine(pen){
+    if(pen>0) return `<span style="color:#8b1a1a;font-size:13px">hawk: -${pen}</span>`;
+    return `<span style="color:#1a6b2a;font-size:13px">no penalty</span>`;
   }
 
   let nextHouses=Math.max(1,BASE_HOUSES-round);
-  let html=`<h2>Round ${round} done!</h2>
+  let html=`<h2>Round ${round} Results</h2>
     <p>Next round: only <strong>${nextHouses} hidey house${nextHouses>1?'s':''}</strong>. Watch out!</p>
     <div class="scores">
-    ${allGPs.map(p=>`<div class="score-card">${p.name}<br>${safeTag(p.status)}<br><span>this round</span>+${p.score}<br><span>total</span>${p.total}</div>`).join('')}
+    ${allGPs.map(p=>`<div class="score-card">${p.name}<br>${safeTag(p.status)}<br>${penaltyLine(p.penalty)}<br><span>this round</span>+${p.score}<br><span>total</span>${p.total}</div>`).join('')}
     </div>
     <button id="start-btn">Round ${round+1} &rarr;</button>`;
   overlay.innerHTML=html;
