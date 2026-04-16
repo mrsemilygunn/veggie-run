@@ -4,24 +4,27 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Veggie Run!</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Special+Elite&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
 :root{
-  --grass:#5a9e3a;
-  --grass-light:#6bb84a;
-  --grass-dark:#4a8430;
-  --dirt:#c8a96e;
-  --sky:#87ceeb;
-  --hud-bg:rgba(30,20,10,0.82);
-  --hud-text:#fff8e7;
-  --danger:#e53e3e;
+  --paper:#f5f0e8;
+  --paper-dark:#e8e0cc;
+  --ink:#1a1208;
+  --ink-mid:#3d2f1a;
+  --grass-paper:#c8d9a0;
+  --accent:#b85c2a;
+  --accent2:#4a7c3f;
+  --red-ink:#9b2020;
 }
 
 body{
-  background:#2d5a1b;
-  font-family:'Nunito',sans-serif;
+  background:#d6cdb8;
+  background-image:
+    repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(0,0,0,0.04) 28px),
+    repeating-linear-gradient(90deg,transparent,transparent 27px,rgba(0,0,0,0.02) 28px);
+  font-family:'Caveat',cursive;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -37,26 +40,34 @@ body{
   justify-content:space-between;
   width:800px;
   max-width:98vw;
-  padding:8px 14px;
-  background:var(--hud-bg);
-  border-radius:14px 14px 0 0;
-  color:var(--hud-text);
-  font-family:'Fredoka One',cursive;
-  font-size:18px;
+  padding:8px 16px;
+  background:var(--paper);
+  border:2px solid var(--ink);
+  border-bottom:none;
+  border-radius:0;
+  color:var(--ink);
+  font-family:'Special Elite',cursive;
+  font-size:16px;
   gap:10px;
   flex-wrap:wrap;
+  /* torn paper top edge */
+  clip-path:polygon(0 6px,1% 0,2% 5px,3% 1px,5% 4px,7% 0,9% 3px,12% 0,15% 5px,18% 1px,22% 4px,26% 0,30% 3px,35% 1px,40% 5px,45% 0,50% 4px,55% 1px,60% 5px,65% 0,70% 3px,75% 1px,80% 4px,85% 0,90% 5px,94% 1px,97% 4px,100% 0,100% 100%,0 100%);
 }
 
 .hud-block{display:flex;align-items:center;gap:6px}
-.hud-label{font-size:13px;font-family:'Nunito',sans-serif;opacity:0.7;text-transform:uppercase;letter-spacing:1px}
-.hud-val{font-size:22px;color:#ffd84d}
+.hud-label{font-size:12px;font-family:'Caveat',cursive;opacity:0.55;text-transform:lowercase;letter-spacing:0.5px}
+.hud-val{font-size:20px;color:var(--ink);font-weight:700}
 
 #round-badge{
-  background:#7c3aed;
-  color:#fff;
-  border-radius:20px;
-  padding:2px 14px;
-  font-size:16px;
+  background:var(--ink);
+  color:var(--paper);
+  border-radius:0;
+  padding:2px 12px;
+  font-size:15px;
+  font-family:'Special Elite',cursive;
+  letter-spacing:1px;
+  transform:rotate(-1deg);
+  display:inline-block;
 }
 
 #game-wrap{position:relative;width:800px;max-width:98vw}
@@ -65,27 +76,24 @@ canvas{
   display:block;
   width:100%;
   height:auto;
-  border-radius:0 0 14px 14px;
-  border:3px solid #2d5a1b;
+  border:2px solid var(--ink);
   border-top:none;
   cursor:none;
 }
 
-/* danger vignette overlay */
 #danger-vignette{
   position:absolute;
   inset:0;
-  border-radius:0 0 14px 14px;
   pointer-events:none;
   opacity:0;
-  box-shadow:inset 0 0 80px 40px rgba(220,30,30,0.7);
+  box-shadow:inset 0 0 90px 50px rgba(155,32,32,0.55);
   transition:opacity 0.4s;
   z-index:5;
+  mix-blend-mode:multiply;
 }
-#danger-vignette.active{opacity:1;animation:pulse-danger 0.8s infinite alternate}
-@keyframes pulse-danger{from{opacity:0.7}to{opacity:1}}
+#danger-vignette.active{opacity:1;animation:pulse-danger 1s infinite alternate}
+@keyframes pulse-danger{from{opacity:0.65}to{opacity:1}}
 
-/* overlay screens */
 #overlay{
   position:absolute;
   inset:0;
@@ -93,66 +101,74 @@ canvas{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  background:rgba(20,40,10,0.88);
-  border-radius:0 0 14px 14px;
+  background:rgba(245,240,232,0.94);
   z-index:20;
-  color:#fff8e7;
+  color:var(--ink);
   text-align:center;
-  padding:20px;
+  padding:24px;
 }
 #overlay.hidden{display:none}
 
 #overlay h2{
-  font-family:'Fredoka One',cursive;
-  font-size:clamp(1.8rem,5vw,3rem);
-  color:#ffd84d;
-  text-shadow:2px 2px 0 #8b4500;
-  margin-bottom:10px;
+  font-family:'Special Elite',cursive;
+  font-size:clamp(1.6rem,5vw,2.8rem);
+  color:var(--ink);
+  margin-bottom:8px;
+  /* hand-drawn underline */
+  text-decoration:underline;
+  text-decoration-style:wavy;
+  text-decoration-color:var(--accent);
+  text-underline-offset:6px;
 }
-#overlay p{font-size:15px;color:#d4f0c0;max-width:480px;line-height:1.6;margin-bottom:18px}
+#overlay p{font-size:17px;color:var(--ink-mid);max-width:480px;line-height:1.6;margin-bottom:18px;font-family:'Caveat',cursive}
 #overlay .scores{
-  display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-bottom:18px
+  display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:20px
 }
 #overlay .score-card{
-  background:rgba(255,255,255,0.1);
-  border-radius:12px;
-  padding:10px 18px;
-  font-family:'Fredoka One',cursive;
-  font-size:20px;
+  background:var(--paper-dark);
+  border:1.5px solid var(--ink);
+  border-radius:0;
+  padding:10px 16px;
+  font-family:'Special Elite',cursive;
+  font-size:17px;
+  transform:rotate(-0.5deg);
+  min-width:110px;
 }
-#overlay .score-card span{display:block;font-family:'Nunito',sans-serif;font-size:12px;opacity:0.7;margin-bottom:2px}
+#overlay .score-card:nth-child(even){transform:rotate(0.8deg)}
+#overlay .score-card span{display:block;font-family:'Caveat',cursive;font-size:13px;opacity:0.6;margin-bottom:2px}
 
 #start-btn{
-  font-family:'Fredoka One',cursive;
-  font-size:22px;
-  background:#5a9e3a;
-  color:#fff;
+  font-family:'Special Elite',cursive;
+  font-size:18px;
+  background:var(--ink);
+  color:var(--paper);
   border:none;
-  border-radius:12px;
-  padding:10px 32px;
+  border-radius:0;
+  padding:10px 28px;
   cursor:pointer;
   letter-spacing:1px;
-  transition:background 0.15s,transform 0.1s;
-  box-shadow:0 4px 0 #2d5a1b;
+  transition:background 0.1s,transform 0.1s;
+  transform:rotate(-0.5deg);
 }
-#start-btn:hover{background:#6bb84a;transform:translateY(-2px)}
-#start-btn:active{transform:translateY(2px);box-shadow:none}
+#start-btn:hover{background:var(--ink-mid);transform:rotate(0.5deg) scale(1.03)}
+#start-btn:active{transform:scale(0.97)}
 
 #hawk-warning{
   position:absolute;
   top:12px;left:50%;transform:translateX(-50%);
-  font-family:'Fredoka One',cursive;
-  font-size:20px;
-  color:#fff;
-  background:rgba(180,20,20,0.9);
-  border-radius:30px;
-  padding:6px 20px;
+  font-family:'Special Elite',cursive;
+  font-size:18px;
+  color:var(--paper);
+  background:var(--red-ink);
+  border-radius:0;
+  padding:5px 18px;
   z-index:10;
   opacity:0;
   pointer-events:none;
   white-space:nowrap;
   transition:opacity 0.3s;
-  letter-spacing:1px;
+  letter-spacing:2px;
+  border:1.5px solid var(--ink);
 }
 #hawk-warning.show{opacity:1}
 </style>
@@ -224,21 +240,7 @@ let scoreDisplay={};
 let playerTotal=0;
 let rivalTotals=[0,0,0];
 
-// ── grass tile pattern ────────────────────────────────────────────────────
-let grassPattern=null;
-function makeGrassPattern(){
-  const oc=document.createElement('canvas'); oc.width=40; oc.height=40;
-  const ox=oc.getContext('2d');
-  ox.fillStyle='#5a9e3a'; ox.fillRect(0,0,40,40);
-  // subtle variation blades
-  const blades=[[5,8],[12,20],[22,6],[30,15],[8,32],[28,28],[18,35],[35,5]];
-  blades.forEach(([x,y])=>{
-    ox.strokeStyle='#4a8430'; ox.lineWidth=1.5;
-    ox.beginPath(); ox.moveTo(x,y+6); ox.lineTo(x-2,y); ox.stroke();
-    ox.beginPath(); ox.moveTo(x,y+6); ox.lineTo(x+2,y+1); ox.stroke();
-  });
-  grassPattern=ctx.createPattern(oc,'repeat');
-}
+// ── grass tile pattern (unused - kept for reference) ──────────────────────
 
 // ── drawing helpers ───────────────────────────────────────────────────────
 function drawEmoji(e,x,y,size,flip=false,opacity=1){
@@ -265,13 +267,13 @@ function drawFloaties(){
   floaties.forEach(f=>{
     ctx.save();
     ctx.globalAlpha=f.life;
-    ctx.font='bold 22px "Fredoka One",cursive';
+    ctx.font=`bold 20px 'Special Elite',cursive`;
     ctx.fillStyle=f.color;
-    ctx.strokeStyle='rgba(0,0,0,0.6)';
+    ctx.strokeStyle='rgba(245,240,232,0.8)';
     ctx.lineWidth=3;
     ctx.textAlign='center';
     ctx.textBaseline='middle';
-    let yOff=(1-f.life)*60;
+    let yOff=(1-f.life)*55;
     ctx.strokeText(f.text,f.x,f.y-yOff);
     ctx.fillText(f.text,f.x,f.y-yOff);
     ctx.restore();
@@ -844,14 +846,78 @@ function showGameOver(){
 
 // ── background ────────────────────────────────────────────────────────────
 function drawBg(){
-  ctx.fillStyle=grassPattern||'#5a9e3a';
+  // paper base
+  ctx.fillStyle='#eee8d8';
   ctx.fillRect(0,0,W,H);
 
-  // subtle path/dirt patches
-  ctx.save(); ctx.globalAlpha=0.18;
-  ctx.fillStyle='#c8a96e';
-  [[W*0.3,H*0.4,120,60],[W*0.7,H*0.7,90,50],[W*0.15,H*0.75,70,40]].forEach(([x,y,rw,rh])=>{
-    ctx.beginPath(); ctx.ellipse(x,y,rw,rh,0.3,0,Math.PI*2); ctx.fill();
+  // faint graph lines like graph paper
+  ctx.save();
+  ctx.strokeStyle='rgba(180,160,120,0.25)';
+  ctx.lineWidth=0.8;
+  for(let x=0;x<W;x+=28){
+    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
+  }
+  for(let y=0;y<H;y+=28){
+    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
+  }
+  ctx.restore();
+
+  // hand-drawn field border (slightly wobbly rectangle)
+  ctx.save();
+  ctx.strokeStyle='#3d2f1a';
+  ctx.lineWidth=2.5;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  // top
+  ctx.moveTo(30,32); ctx.bezierCurveTo(200,28,600,34,W-30,30);
+  // right
+  ctx.bezierCurveTo(W-26,150,W-32,350,W-28,H-32);
+  // bottom
+  ctx.bezierCurveTo(600,H-28,200,H-34,30,H-30);
+  // left
+  ctx.bezierCurveTo(26,350,32,150,30,32);
+  ctx.stroke();
+  ctx.restore();
+
+  // hatched grass fill inside border
+  ctx.save();
+  ctx.strokeStyle='#8aaa5a';
+  ctx.lineWidth=1;
+  ctx.globalAlpha=0.35;
+  for(let i=0;i<W+H;i+=10){
+    ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(0,i);ctx.stroke();
+  }
+  ctx.restore();
+
+  // scattered hand-drawn grass tufts
+  ctx.save();
+  ctx.strokeStyle='#5a7a30';
+  ctx.lineWidth=1.5;
+  ctx.globalAlpha=0.5;
+  const tufts=[[80,80],[200,140],[400,60],[620,100],[720,200],[740,400],[600,460],[300,440],[150,380],[50,260],[500,300],[350,200]];
+  tufts.forEach(([tx,ty])=>{
+    for(let b=0;b<3;b++){
+      let bx=tx+rnd(-14,14);
+      ctx.beginPath();
+      ctx.moveTo(bx,ty);
+      ctx.quadraticCurveTo(bx+rnd(-4,4),ty-rnd(8,16),bx+rnd(-3,3),ty-rnd(14,22));
+      ctx.stroke();
+    }
+  });
+  ctx.restore();
+
+  // dirt patches as pencil-hatched ovals
+  ctx.save();
+  ctx.strokeStyle='#a08050';
+  ctx.lineWidth=1;
+  ctx.globalAlpha=0.2;
+  [[W*0.3,H*0.4,70,35,0.3],[W*0.7,H*0.65,55,28,-0.2],[W*0.15,H*0.72,45,22,0.1]].forEach(([x,y,rw,rh,rot])=>{
+    ctx.save();ctx.translate(x,y);ctx.rotate(rot);
+    for(let s=-rw;s<rw;s+=6){
+      let yOff=Math.sqrt(Math.max(0,1-(s/rw)**2))*rh;
+      ctx.beginPath();ctx.moveTo(s,-yOff);ctx.lineTo(s,yOff);ctx.stroke();
+    }
+    ctx.restore();
   });
   ctx.restore();
 }
@@ -878,10 +944,10 @@ function loop(ts){
     let scale = 1+(0.3*((countdownTimer%1000)/1000)); // pulse
     ctx.save();
     ctx.globalAlpha=Math.min(1,1.2-((countdownTimer%1000)/1000));
-    ctx.font=`bold ${Math.round(80*scale)}px "Fredoka One",cursive`;
-    ctx.fillStyle='#ffd84d';
-    ctx.strokeStyle='rgba(0,0,0,0.5)';
-    ctx.lineWidth=6;
+    ctx.font=`bold ${Math.round(80*scale)}px 'Special Elite',cursive`;
+    ctx.fillStyle='#1a1208';
+    ctx.strokeStyle='rgba(245,240,232,0.7)';
+    ctx.lineWidth=5;
     ctx.textAlign='center';
     ctx.textBaseline='middle';
     ctx.strokeText(num,W/2,H/2);
@@ -917,7 +983,6 @@ function loop(ts){
 }
 
 // ── start ─────────────────────────────────────────────────────────────────
-makeGrassPattern();
 frameId=requestAnimationFrame(loop);
 
 document.getElementById('start-btn').addEventListener('click',()=>{
