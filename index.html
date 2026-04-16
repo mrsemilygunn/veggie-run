@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Veggie Run!</title>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Special+Elite&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Architects+Daughter&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 
@@ -13,17 +13,17 @@
   --paper-dark:#e8e0cc;
   --ink:#1a1208;
   --ink-mid:#3d2f1a;
-  --grass-paper:#c8d9a0;
   --accent:#b85c2a;
-  --accent2:#4a7c3f;
   --red-ink:#9b2020;
 }
 
 body{
-  background:#d6cdb8;
+  background:#7a9e72;
   background-image:
-    repeating-linear-gradient(0deg,transparent,transparent 27px,rgba(0,0,0,0.04) 28px),
-    repeating-linear-gradient(90deg,transparent,transparent 27px,rgba(0,0,0,0.02) 28px);
+    radial-gradient(ellipse at 20% 30%, #8fb585 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 70%, #6a9060 0%, transparent 45%),
+    radial-gradient(ellipse at 50% 10%, #90b882 0%, transparent 40%),
+    radial-gradient(ellipse at 10% 80%, #6b9564 0%, transparent 35%);
   font-family:'Caveat',cursive;
   display:flex;
   flex-direction:column;
@@ -44,27 +44,23 @@ body{
   background:var(--paper);
   border:2px solid var(--ink);
   border-bottom:none;
-  border-radius:0;
   color:var(--ink);
-  font-family:'Special Elite',cursive;
-  font-size:16px;
+  font-family:'Architects Daughter',cursive;
+  font-size:15px;
   gap:10px;
   flex-wrap:wrap;
-  /* torn paper top edge */
-  clip-path:polygon(0 6px,1% 0,2% 5px,3% 1px,5% 4px,7% 0,9% 3px,12% 0,15% 5px,18% 1px,22% 4px,26% 0,30% 3px,35% 1px,40% 5px,45% 0,50% 4px,55% 1px,60% 5px,65% 0,70% 3px,75% 1px,80% 4px,85% 0,90% 5px,94% 1px,97% 4px,100% 0,100% 100%,0 100%);
 }
 
 .hud-block{display:flex;align-items:center;gap:6px}
-.hud-label{font-size:12px;font-family:'Caveat',cursive;opacity:0.55;text-transform:lowercase;letter-spacing:0.5px}
-.hud-val{font-size:20px;color:var(--ink);font-weight:700}
+.hud-label{font-size:11px;font-family:'Caveat',cursive;opacity:0.5;text-transform:lowercase;letter-spacing:0.5px}
+.hud-val{font-size:18px;color:var(--ink);font-weight:700;font-family:'Architects Daughter',cursive}
 
 #round-badge{
   background:var(--ink);
   color:var(--paper);
-  border-radius:0;
   padding:2px 12px;
-  font-size:15px;
-  font-family:'Special Elite',cursive;
+  font-size:14px;
+  font-family:'Architects Daughter',cursive;
   letter-spacing:1px;
   transform:rotate(-1deg);
   display:inline-block;
@@ -86,13 +82,12 @@ canvas{
   inset:0;
   pointer-events:none;
   opacity:0;
-  box-shadow:inset 0 0 90px 50px rgba(155,32,32,0.55);
+  box-shadow:inset 0 0 90px 50px rgba(155,32,32,0.5);
   transition:opacity 0.4s;
   z-index:5;
-  mix-blend-mode:multiply;
 }
 #danger-vignette.active{opacity:1;animation:pulse-danger 1s infinite alternate}
-@keyframes pulse-danger{from{opacity:0.65}to{opacity:1}}
+@keyframes pulse-danger{from{opacity:0.6}to{opacity:1}}
 
 #overlay{
   position:absolute;
@@ -101,7 +96,7 @@ canvas{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  background:rgba(245,240,232,0.94);
+  background:rgba(245,240,232,0.95);
   z-index:20;
   color:var(--ink);
   text-align:center;
@@ -110,27 +105,21 @@ canvas{
 #overlay.hidden{display:none}
 
 #overlay h2{
-  font-family:'Special Elite',cursive;
-  font-size:clamp(1.6rem,5vw,2.8rem);
+  font-family:'Architects Daughter',cursive;
+  font-size:clamp(2rem,6vw,3.4rem);
   color:var(--ink);
-  margin-bottom:8px;
-  /* hand-drawn underline */
-  text-decoration:underline;
-  text-decoration-style:wavy;
-  text-decoration-color:var(--accent);
-  text-underline-offset:6px;
+  margin-bottom:10px;
 }
-#overlay p{font-size:17px;color:var(--ink-mid);max-width:480px;line-height:1.6;margin-bottom:18px;font-family:'Caveat',cursive}
+#overlay p{font-size:18px;color:var(--ink-mid);max-width:480px;line-height:1.6;margin-bottom:18px;font-family:'Caveat',cursive;font-weight:600}
 #overlay .scores{
   display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:20px
 }
 #overlay .score-card{
   background:var(--paper-dark);
   border:1.5px solid var(--ink);
-  border-radius:0;
   padding:10px 16px;
-  font-family:'Special Elite',cursive;
-  font-size:17px;
+  font-family:'Architects Daughter',cursive;
+  font-size:15px;
   transform:rotate(-0.5deg);
   min-width:110px;
 }
@@ -138,29 +127,27 @@ canvas{
 #overlay .score-card span{display:block;font-family:'Caveat',cursive;font-size:13px;opacity:0.6;margin-bottom:2px}
 
 #start-btn{
-  font-family:'Special Elite',cursive;
+  font-family:'Architects Daughter',cursive;
   font-size:18px;
   background:var(--ink);
   color:var(--paper);
   border:none;
-  border-radius:0;
   padding:10px 28px;
   cursor:pointer;
   letter-spacing:1px;
-  transition:background 0.1s,transform 0.1s;
+  transition:opacity 0.1s,transform 0.1s;
   transform:rotate(-0.5deg);
 }
-#start-btn:hover{background:var(--ink-mid);transform:rotate(0.5deg) scale(1.03)}
+#start-btn:hover{opacity:0.85;transform:rotate(0.5deg) scale(1.03)}
 #start-btn:active{transform:scale(0.97)}
 
 #hawk-warning{
   position:absolute;
   top:12px;left:50%;transform:translateX(-50%);
-  font-family:'Special Elite',cursive;
-  font-size:18px;
+  font-family:'Architects Daughter',cursive;
+  font-size:17px;
   color:var(--paper);
   background:var(--red-ink);
-  border-radius:0;
   padding:5px 18px;
   z-index:10;
   opacity:0;
@@ -178,8 +165,8 @@ canvas{
 <div id="hud">
   <div class="hud-block">
     <div>
-      <div class="hud-label">Your veggies</div>
-      <div class="hud-val" id="hud-score">0 🥕</div>
+      <div class="hud-label">your veggies</div>
+      <div class="hud-val" id="hud-score">0</div>
     </div>
   </div>
   <div class="hud-block">
@@ -187,8 +174,8 @@ canvas{
   </div>
   <div class="hud-block">
     <div>
-      <div class="hud-label">Hidey houses</div>
-      <div class="hud-val" id="hud-houses">5 🏠</div>
+      <div class="hud-label">hidey houses</div>
+      <div class="hud-val" id="hud-houses">5</div>
     </div>
   </div>
 </div>
@@ -196,11 +183,11 @@ canvas{
 <div id="game-wrap">
   <canvas id="c" width="800" height="560"></canvas>
   <div id="danger-vignette"></div>
-  <div id="hawk-warning">🦅 HAWK!</div>
+  <div id="hawk-warning">HAWK!</div>
 
   <div id="overlay">
-    <h2>🐹 Veggie Run!</h2>
-    <p>Collect veggies with the arrow keys. When the hawk appears — hide in a 🏠 house! Each round there are fewer houses...</p>
+    <h2>Veggie Run!</h2>
+    <p>Collect veggies with the arrow keys. When the hawk appears — hide in a house! Each round there are fewer houses...</p>
     <button id="start-btn">Start Game</button>
   </div>
 </div>
@@ -217,8 +204,8 @@ function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
 function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
 
 // ── game state ────────────────────────────────────────────────────────────
-const VEGGIES = ['🥕','🥦','🌽','🥬','🍅','🫑'];
-const VEGGIE_SCORE = {'🥕':1,'🥦':2,'🌽':1,'🥬':1,'🍅':2,'🫑':2};
+const VEGGIES = ['carrot','broccoli','corn','lettuce','tomato','pepper'];
+const VEGGIE_SCORE = {'carrot':1,'broccoli':2,'corn':1,'lettuce':1,'tomato':2,'pepper':2};
 const TOTAL_ROUNDS = 5;
 const BASE_HOUSES = 5; // round 1 houses
 
@@ -242,19 +229,290 @@ let rivalTotals=[0,0,0];
 
 // ── grass tile pattern (unused - kept for reference) ──────────────────────
 
-// ── drawing helpers ───────────────────────────────────────────────────────
-function drawEmoji(e,x,y,size,flip=false,opacity=1){
+// ── sketch drawing helpers ────────────────────────────────────────────────
+// Draw a tiny paper scrap behind each sprite
+function drawPaperScrap(x,y,w,h,angle=0){
   ctx.save();
-  ctx.globalAlpha=opacity;
-  ctx.font=`${size}px serif`;
-  ctx.textAlign='center';
-  ctx.textBaseline='middle';
-  if(flip){ctx.scale(-1,1);x=-x;}
-  ctx.fillText(e,x,y);
+  ctx.translate(x,y); ctx.rotate(angle);
+  ctx.fillStyle='#f5f0e8';
+  ctx.strokeStyle='#1a1208';
+  ctx.lineWidth=0.8;
+  ctx.beginPath();
+  ctx.rect(-w/2,-h/2,w,h);
+  ctx.fill(); ctx.stroke();
   ctx.restore();
 }
 
-// floaty penalty text popups
+// Guinea pig: round body, tiny ears, dot eyes, snout
+function drawGPSketch(x,y,size,flip,opacity,isPlayer,caught){
+  ctx.save();
+  ctx.globalAlpha=opacity;
+  ctx.translate(x,y);
+  if(flip) ctx.scale(-1,1);
+
+  let s=size/30; // scale factor
+
+  // paper scrap behind
+  drawPaperScrap(0,0,size*1.1,size*0.95, flip?(isPlayer?0.05:-0.04):(isPlayer?-0.05:0.04));
+
+  ctx.strokeStyle='#2a1a0a';
+  ctx.fillStyle='#c8a878';
+  ctx.lineWidth=1.2*s*30/size+0.5;
+
+  // body (rounded rect)
+  ctx.beginPath();
+  ctx.ellipse(0,2*s,11*s,9*s,0,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // head
+  ctx.beginPath();
+  ctx.ellipse(-3*s,-7*s,8*s,7*s,-.15,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // ear
+  ctx.fillStyle='#e0b898';
+  ctx.beginPath();
+  ctx.ellipse(-9*s,-12*s,3*s,4*s,-.3,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(1*s,-13*s,2.5*s,3.5*s,.2,0,Math.PI*2);
+  ctx.fill(); ctx.stroke();
+
+  // eye
+  ctx.fillStyle='#1a1208';
+  ctx.beginPath();
+  ctx.arc(-5*s,-7*s,1.4*s,0,Math.PI*2);
+  ctx.fill();
+  // shine
+  ctx.fillStyle='#fff';
+  ctx.beginPath();
+  ctx.arc(-4.4*s,-7.5*s,0.5*s,0,Math.PI*2);
+  ctx.fill();
+
+  // nose
+  ctx.fillStyle='#d4806a';
+  ctx.beginPath();
+  ctx.ellipse(-1*s,-4*s,2*s,1.4*s,0,0,Math.PI*2);
+  ctx.fill();
+
+  // fur tuft on forehead
+  ctx.strokeStyle='#8a6a40';
+  ctx.lineWidth=0.8;
+  ctx.beginPath();
+  ctx.moveTo(-3*s,-13*s);
+  ctx.quadraticCurveTo(-2*s,-17*s,-1*s,-14*s);
+  ctx.stroke();
+
+  // YOU label for player
+  if(isPlayer){
+    ctx.restore();
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.font=`bold ${Math.round(10*s*2+8)}px 'Architects Daughter',cursive`;
+    ctx.fillStyle='#3d2f1a';
+    ctx.textAlign='center';
+    ctx.fillText('YOU',0,-size*0.75);
+  }
+
+  // dazed stars if caught
+  if(caught){
+    ctx.restore();
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.font=`${Math.round(12*s*2)}px serif`;
+    ctx.textAlign='center';
+    ctx.fillText('★',size*0.3,-size*0.6);
+  }
+
+  ctx.restore();
+}
+
+// House: simple A-frame sketch
+function drawHouseSketch(x,y,bounce,occupied){
+  ctx.save();
+  ctx.translate(x, y + (bounce ? Math.sin(Date.now()/130)*4 : 0));
+
+  let s=1;
+  // paper scrap
+  drawPaperScrap(0,0,50,46,0.03);
+
+  ctx.strokeStyle='#2a1a0a';
+  ctx.lineWidth=1.4;
+
+  // walls
+  ctx.fillStyle=occupied?'#c8b898':'#e8dcc8';
+  ctx.beginPath();
+  ctx.rect(-14,-4,28,18);
+  ctx.fill(); ctx.stroke();
+
+  // roof
+  ctx.fillStyle=occupied?'#a06848':'#c07850';
+  ctx.beginPath();
+  ctx.moveTo(-18,-4); ctx.lineTo(0,-22); ctx.lineTo(18,-4);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+
+  // door
+  ctx.fillStyle=occupied?'#6a4a2a':'#8a6040';
+  ctx.beginPath();
+  ctx.rect(-5,2,10,12);
+  ctx.fill(); ctx.stroke();
+
+  // chimney
+  ctx.fillStyle='#a08060';
+  ctx.beginPath();
+  ctx.rect(6,-20,5,10);
+  ctx.fill(); ctx.stroke();
+
+  // window
+  ctx.strokeStyle='#5a8aaa';
+  ctx.lineWidth=1;
+  ctx.strokeRect(-12,0,7,6);
+  ctx.beginPath(); ctx.moveTo(-12,3); ctx.lineTo(-5,3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(-8.5,0); ctx.lineTo(-8.5,6); ctx.stroke();
+
+  // lock icon if occupied
+  if(occupied){
+    ctx.fillStyle='#2a1a0a';
+    ctx.font='8px serif';
+    ctx.textAlign='center';
+    ctx.fillText('🔒',12,-10);
+  }
+
+  // glow outline when bouncing and free
+  if(bounce && !occupied){
+    ctx.strokeStyle='rgba(180,140,40,0.5)';
+    ctx.lineWidth=3;
+    ctx.strokeRect(-20,-24,40,46);
+  }
+
+  ctx.restore();
+}
+
+// Veggie sketches: carrot, broccoli, corn, lettuce, tomato, pepper
+function drawVeggieSketch(x,y,type,bob){
+  ctx.save();
+  ctx.translate(x, y+bob);
+  // paper scrap
+  drawPaperScrap(0,0,26,26,0.08);
+  ctx.strokeStyle='#2a1a0a';
+  ctx.lineWidth=1.1;
+
+  if(type==='carrot'){
+    ctx.fillStyle='#e8782a';
+    ctx.beginPath(); ctx.moveTo(0,10); ctx.bezierCurveTo(-6,-2,-6,-10,0,-12); ctx.bezierCurveTo(6,-10,6,-2,0,10); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='#4a8a30'; ctx.lineWidth=1;
+    for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(i*3,-12);ctx.quadraticCurveTo(i*5,-18,i*2,-20);ctx.stroke();}
+  } else if(type==='broccoli'){
+    ctx.fillStyle='#5a8a30'; ctx.beginPath(); ctx.arc(-4,-6,6,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(4,-4,5,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0,-10,5,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#6a5a30'; ctx.beginPath(); ctx.rect(-2,0,4,10); ctx.fill(); ctx.stroke();
+  } else if(type==='corn'){
+    ctx.fillStyle='#e8c830'; ctx.beginPath(); ctx.ellipse(0,0,5,10,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='#c8a010'; ctx.lineWidth=0.6;
+    for(let yy=-7;yy<8;yy+=3){ctx.beginPath();ctx.moveTo(-4,yy);ctx.lineTo(4,yy);ctx.stroke();}
+    ctx.strokeStyle='#4a7a20'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(-3,-10); ctx.quadraticCurveTo(-8,-16,-4,-14); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(3,-10); ctx.quadraticCurveTo(8,-16,5,-14); ctx.stroke();
+  } else if(type==='lettuce'){
+    ctx.fillStyle='#78b840';
+    for(let a=0;a<6;a++){ctx.save();ctx.rotate(a*Math.PI/3);ctx.beginPath();ctx.ellipse(0,-7,4,7,0,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();}
+    ctx.fillStyle='#a8d860'; ctx.beginPath(); ctx.arc(0,0,4,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  } else if(type==='tomato'){
+    ctx.fillStyle='#d83030'; ctx.beginPath(); ctx.arc(0,2,9,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#4a8a20'; ctx.strokeStyle='#2a5a10';
+    ctx.beginPath(); ctx.moveTo(0,-7); ctx.bezierCurveTo(-6,-14,-8,-10,-4,-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,-7); ctx.bezierCurveTo(6,-14,8,-10,4,-8); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,-7); ctx.lineTo(0,-12); ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(-3,0,3,Math.PI*1.1,Math.PI*1.7); ctx.stroke();
+  } else { // pepper
+    ctx.fillStyle='#c83030'; ctx.beginPath(); ctx.moveTo(0,-10); ctx.bezierCurveTo(10,-8,10,8,0,12); ctx.bezierCurveTo(-10,8,-10,-8,0,-10); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle='#4a8a20'; ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(2,-16); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Hawk sketch
+function drawHawkSketch(x,y,flip){
+  ctx.save();
+  ctx.translate(x,y);
+  if(flip) ctx.scale(-1,1);
+  drawPaperScrap(0,0,54,38,flip?-0.06:0.06);
+  ctx.strokeStyle='#2a1a0a';
+  ctx.lineWidth=1.3;
+
+  // body
+  ctx.fillStyle='#8a6030';
+  ctx.beginPath(); ctx.ellipse(0,2,12,7,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // head
+  ctx.fillStyle='#c8a860';
+  ctx.beginPath(); ctx.ellipse(13,-3,7,6,0.3,0,Math.PI*2); ctx.fill(); ctx.stroke();
+
+  // beak
+  ctx.fillStyle='#d8a030';
+  ctx.beginPath(); ctx.moveTo(19,-2); ctx.lineTo(24,0); ctx.lineTo(19,2); ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // eye
+  ctx.fillStyle='#1a1208'; ctx.beginPath(); ctx.arc(15,-4,1.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(15.5,-4.4,0.5,0,Math.PI*2); ctx.fill();
+
+  // wings spread
+  ctx.fillStyle='#6a4820';
+  ctx.beginPath(); ctx.moveTo(-2,0); ctx.bezierCurveTo(-8,-14,-20,-16,-24,-10); ctx.bezierCurveTo(-18,-4,-8,2,-2,4); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(2,0); ctx.bezierCurveTo(6,-12,16,-14,20,-8); ctx.bezierCurveTo(14,-2,6,2,2,4); ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  // wing feather lines
+  ctx.strokeStyle='#3a2810'; ctx.lineWidth=0.7;
+  [[-18,-10],[-14,-8],[-10,-6]].forEach(([wx,wy])=>{ctx.beginPath();ctx.moveTo(wx,wy);ctx.lineTo(wx+3,wy+5);ctx.stroke();});
+  [[16,-8],[12,-6],[8,-4]].forEach(([wx,wy])=>{ctx.beginPath();ctx.moveTo(wx,wy);ctx.lineTo(wx-3,wy+5);ctx.stroke();});
+
+  // talons
+  ctx.strokeStyle='#4a3818'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(-4,7); ctx.lineTo(-6,12); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,8); ctx.lineTo(0,13); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(4,7); ctx.lineTo(6,12); ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawGP(gp, isPlayer=false){
+  if(gp.hiding){
+    ctx.save(); ctx.globalAlpha=0.3;
+    drawGPSketch(gp.x,gp.y,isPlayer?28:22,gp.vx<0,1,false,false);
+    ctx.restore(); return;
+  }
+  drawGPSketch(gp.x,gp.y,isPlayer?28:22,gp.vx<0,gp.caught?0.5:1,isPlayer,gp.caught);
+}
+
+function drawHouse(h){
+  drawHouseSketch(h.x,h.y,h.bounce,h.occupant!==null);
+}
+
+function drawVeggie(v){
+  if(v.collected) return;
+  let bob=Math.sin(Date.now()/400+v.phase)*3;
+  drawVeggieSketch(v.x,v.y,v.type,bob);
+}
+
+function drawHawk(){
+  if(!hawk.active) return;
+  if(hawk.trail && hawk.trail.length>1){
+    ctx.save();
+    ctx.strokeStyle='rgba(120,60,20,0.15)';
+    ctx.lineWidth=2;
+    ctx.setLineDash([4,8]);
+    ctx.beginPath();
+    hawk.trail.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+  drawHawkSketch(hawk.x,hawk.y,hawk.vx<0);
+}
 let floaties=[];
 function spawnFloaty(x,y,text,color='#ff4444'){
   floaties.push({x,y,text,color,life:1.0});
@@ -353,19 +611,23 @@ function drawHawk(){
 }
 
 function launchHawk(){
-  // enter from a random edge
-  let side=rndInt(0,3); // 0=top,1=right,2=bottom,3=left
+  // start inside the field near an edge (not off-screen so it can't escape)
+  let side=rndInt(0,3);
   let sx,sy;
-  if(side===0){sx=rnd(100,W-100);sy=-60;}
-  else if(side===1){sx=W+60;sy=rnd(80,H-80);}
-  else if(side===2){sx=rnd(100,W-100);sy=H+60;}
-  else{sx=-60;sy=rnd(80,H-80);}
+  let pad=80;
+  if(side===0){sx=rnd(pad,W-pad); sy=pad;}
+  else if(side===1){sx=W-pad;     sy=rnd(pad,H-pad);}
+  else if(side===2){sx=rnd(pad,W-pad); sy=H-pad;}
+  else             {sx=pad;        sy=rnd(pad,H-pad);}
 
-  let spd=2.2+round*0.2;
+  // initial velocity pointing roughly toward center
+  let toCx=W/2-sx, toCy=H/2-sy, toC=Math.hypot(toCx,toCy)||1;
+  let spd=1.6+round*0.15; // slower — was 2.2
   hawk={
     active:true,
-    x:sx,y:sy,
-    vx:rnd(-1,1),vy:rnd(-1,1),
+    x:sx, y:sy,
+    vx:(toCx/toC+rnd(-0.3,0.3))*spd,
+    vy:(toCy/toC+rnd(-0.3,0.3))*spd,
     speed:spd,
     trail:[],
     done:false
@@ -376,7 +638,7 @@ function launchHawk(){
 
   dangerEl.classList.add('active');
   warningEl.classList.add('show');
-  warningEl.textContent='🦅 HAWK!';
+  warningEl.textContent='HAWK!';
   houses.forEach(h=>h.bounce=true);
 
   if(firstHawk){
@@ -391,14 +653,13 @@ function launchHawk(){
 function updateHawk(){
   if(!hawk.active) return;
 
-  // ── find target: nearest unhidden, uncaught guinea pig ──
+  // ── find targets: unhidden, uncaught guinea pigs ──
   let targets=[];
   if(!player.hiding && !player.caught) targets.push(player);
   rivals.forEach(r=>{if(!r.hiding && !r.caught) targets.push(r);});
 
-  // check if all guinea pigs are safe or caught — end round
-  let allDone = targets.length===0;
-  if(allDone){
+  // only end round once we're in real hawk phase and all targets resolved
+  if(phase==='hawk' && targets.length===0){
     hawk.active=false;
     dangerEl.classList.remove('active');
     warningEl.classList.remove('show');
@@ -409,23 +670,31 @@ function updateHawk(){
     return;
   }
 
-  // steer toward nearest target
+  // steer toward nearest target (or patrol center if no targets yet)
   let nearest=null, nd=Infinity;
   targets.forEach(t=>{let d=dist(hawk,t);if(d<nd){nd=d;nearest=t;}});
 
   if(nearest){
     let dx=nearest.x-hawk.x, dy=nearest.y-hawk.y, d=Math.hypot(dx,dy)||1;
-    let turnRate=0.06; // how sharply hawk can turn
-    hawk.vx+=(dx/d)*turnRate;
-    hawk.vy+=(dy/d)*turnRate;
+    hawk.vx+=(dx/d)*0.08;
+    hawk.vy+=(dy/d)*0.08;
+  } else {
+    // grace period or all hiding — circle center loosely
+    let dx=W/2-hawk.x, dy=H/2-hawk.y, d=Math.hypot(dx,dy)||1;
+    hawk.vx+=(dx/d)*0.04;
+    hawk.vy+=(dy/d)*0.04;
   }
 
-  // keep hawk inside field with soft boundary push
-  let margin=60;
-  if(hawk.x<margin)   hawk.vx+=0.15;
-  if(hawk.x>W-margin) hawk.vx-=0.15;
-  if(hawk.y<margin)   hawk.vy+=0.15;
-  if(hawk.y>H-margin) hawk.vy-=0.15;
+  // hard boundary — hawk MUST stay inside field
+  let margin=40;
+  if(hawk.x<margin)   { hawk.vx+=0.4; hawk.vx=Math.max(hawk.vx,0.5); }
+  if(hawk.x>W-margin) { hawk.vx-=0.4; hawk.vx=Math.min(hawk.vx,-0.5); }
+  if(hawk.y<margin)   { hawk.vy+=0.4; hawk.vy=Math.max(hawk.vy,0.5); }
+  if(hawk.y>H-margin) { hawk.vy-=0.4; hawk.vy=Math.min(hawk.vy,-0.5); }
+
+  // clamp hawk position to field
+  hawk.x=clamp(hawk.x, margin, W-margin);
+  hawk.y=clamp(hawk.y, margin, H-margin);
 
   // normalize to constant speed
   let spd=Math.hypot(hawk.vx,hawk.vy)||1;
@@ -436,24 +705,24 @@ function updateHawk(){
   hawk.y+=hawk.vy;
 
   hawk.trail.push({x:hawk.x,y:hawk.y});
-  if(hawk.trail.length>30) hawk.trail.shift();
+  if(hawk.trail.length>35) hawk.trail.shift();
 
-  // catches
+  // catches — only in real hawk phase
   if(phase==='hawk'){
     if(!player.hiding && !player.caught && dist(hawk,player)<44){
       player.caught=true;
       let penalty=Math.max(5,Math.round(player.score*0.25));
       player.score=Math.max(0,player.score-penalty);
-      spawnFloaty(player.x,player.y-10,`-${penalty} 🥕`);
-      warningEl.textContent='😱 CAUGHT!';
-      setTimeout(()=>{if(hawk.active)warningEl.textContent='🦅 HAWK!';},1500);
+      spawnFloaty(player.x,player.y-10,`-${penalty} veggies`,'#9b2020');
+      warningEl.textContent='CAUGHT!';
+      setTimeout(()=>{if(hawk.active)warningEl.textContent='HAWK!';},1500);
     }
     rivals.forEach(r=>{
       if(!r.hiding && !r.caught && dist(hawk,r)<38){
         r.caught=true;
         let pen=Math.max(3,Math.round(r.score*0.25));
         r.score=Math.max(0,r.score-pen);
-        spawnFloaty(r.x,r.y-10,`-${pen} 🥕`,'#ffaa44');
+        spawnFloaty(r.x,r.y-10,`-${pen}`,'#9b2020');
       }
     });
   }
@@ -801,9 +1070,9 @@ function showRoundResult(){
   let html=`<h2>Round ${round} done!</h2>
     <p>Next round: only <strong>${nextHouses} hidey house${nextHouses>1?'s':''}</strong>. Watch out!</p>
     <div class="scores">
-    ${allGPs.map(p=>`<div class="score-card">🐹 ${p.name}<br>${safeTag(p.status)}<br><span>this round</span>+${p.score} 🥕<br><span>total</span>${p.total} 🥕</div>`).join('')}
+    ${allGPs.map(p=>`<div class="score-card">${p.name}<br>${safeTag(p.status)}<br><span>this round</span>+${p.score}<br><span>total</span>${p.total}</div>`).join('')}
     </div>
-    <button id="start-btn">Round ${round+1} →</button>`;
+    <button id="start-btn">Round ${round+1} &rarr;</button>`;
   overlay.innerHTML=html;
   overlay.classList.remove('hidden');
   document.getElementById('start-btn').addEventListener('click',()=>{
@@ -828,10 +1097,10 @@ function showGameOver(){
   let winner=all[0];
   let playerWon=winner.name==='You';
 
-  let html=`<h2>${playerWon?'🏆 You win!':'😢 '+winner.name+' wins!'}</h2>
-    <p>${playerWon?'You collected the most veggies across all '+TOTAL_ROUNDS+' rounds. Champion guinea pig!':'Better luck next time! Keep practicing your veggie-grabbing skills.'}</p>
+  let html=`<h2>${playerWon?'You win!':winner.name+' wins!'}</h2>
+    <p>${playerWon?'You collected the most veggies. Champion guinea pig!':'Better luck next time!'}</p>
     <div class="scores">
-    ${all.map((p,i)=>`<div class="score-card">${i===0?'🏆':i===1?'🥈':i===2?'🥉':''}${p.emoji} ${p.name}<br><span>total veggies</span>${p.total} 🥕</div>`).join('')}
+    ${all.map((p,i)=>`<div class="score-card">${i===0?'1st':i===1?'2nd':i===2?'3rd':'4th'} — ${p.name}<br><span>total veggies</span>${p.total}</div>`).join('')}
     </div>
     <button id="start-btn">Play Again</button>`;
   overlay.innerHTML=html;
@@ -839,86 +1108,63 @@ function showGameOver(){
   document.getElementById('start-btn').addEventListener('click',()=>{
     round=1; playerTotal=0; rivalTotals=[0,0,0]; firstHawk=true;
     overlay.classList.add('hidden');
-    document.getElementById('hud-score').textContent='0 🥕';
+    document.getElementById('hud-score').textContent='0';
     initRound();
   });
 }
 
 // ── background ────────────────────────────────────────────────────────────
 function drawBg(){
-  // paper base
-  ctx.fillStyle='#eee8d8';
+  // sage green watercolor base
+  ctx.fillStyle='#c8d9a0';
   ctx.fillRect(0,0,W,H);
 
-  // faint graph lines like graph paper
-  ctx.save();
-  ctx.strokeStyle='rgba(180,160,120,0.25)';
-  ctx.lineWidth=0.8;
-  for(let x=0;x<W;x+=28){
-    ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();
-  }
-  for(let y=0;y<H;y+=28){
-    ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();
-  }
-  ctx.restore();
+  // soft watercolor blotches for depth
+  let blotches=[
+    [W*0.15,H*0.2,130,80,'rgba(180,210,140,0.35)'],
+    [W*0.7,H*0.15,110,70,'rgba(150,190,110,0.3)'],
+    [W*0.5,H*0.6,160,100,'rgba(140,185,100,0.28)'],
+    [W*0.85,H*0.55,100,65,'rgba(170,205,130,0.32)'],
+    [W*0.2,H*0.75,120,75,'rgba(155,195,115,0.25)'],
+    [W*0.6,H*0.85,90,55,'rgba(145,188,108,0.3)'],
+  ];
+  blotches.forEach(([x,y,rw,rh,c])=>{
+    ctx.save();
+    ctx.fillStyle=c;
+    ctx.beginPath();
+    ctx.ellipse(x,y,rw,rh,0,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  });
 
-  // hand-drawn field border (slightly wobbly rectangle)
-  ctx.save();
-  ctx.strokeStyle='#3d2f1a';
-  ctx.lineWidth=2.5;
-  ctx.setLineDash([]);
-  ctx.beginPath();
-  // top
-  ctx.moveTo(30,32); ctx.bezierCurveTo(200,28,600,34,W-30,30);
-  // right
-  ctx.bezierCurveTo(W-26,150,W-32,350,W-28,H-32);
-  // bottom
-  ctx.bezierCurveTo(600,H-28,200,H-34,30,H-30);
-  // left
-  ctx.bezierCurveTo(26,350,32,150,30,32);
-  ctx.stroke();
-  ctx.restore();
-
-  // hatched grass fill inside border
-  ctx.save();
-  ctx.strokeStyle='#8aaa5a';
-  ctx.lineWidth=1;
-  ctx.globalAlpha=0.35;
-  for(let i=0;i<W+H;i+=10){
-    ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(0,i);ctx.stroke();
-  }
-  ctx.restore();
-
-  // scattered hand-drawn grass tufts
+  // sparse hand-drawn grass tufts — just strokes, no hatching
   ctx.save();
   ctx.strokeStyle='#5a7a30';
-  ctx.lineWidth=1.5;
-  ctx.globalAlpha=0.5;
-  const tufts=[[80,80],[200,140],[400,60],[620,100],[720,200],[740,400],[600,460],[300,440],[150,380],[50,260],[500,300],[350,200]];
+  ctx.lineWidth=1.2;
+  ctx.globalAlpha=0.45;
+  const tufts=[[80,80],[220,150],[420,55],[640,95],[730,210],[750,410],[610,470],[310,450],[160,390],[55,270],[510,310],[360,210],[100,310],[680,320],[280,80],[560,430]];
   tufts.forEach(([tx,ty])=>{
     for(let b=0;b<3;b++){
-      let bx=tx+rnd(-14,14);
+      let bx=tx+rnd(-12,12);
       ctx.beginPath();
-      ctx.moveTo(bx,ty);
-      ctx.quadraticCurveTo(bx+rnd(-4,4),ty-rnd(8,16),bx+rnd(-3,3),ty-rnd(14,22));
+      ctx.moveTo(bx,ty+4);
+      ctx.quadraticCurveTo(bx+rnd(-3,3),ty-rnd(6,12),bx+rnd(-2,2),ty-rnd(10,18));
       ctx.stroke();
     }
   });
   ctx.restore();
 
-  // dirt patches as pencil-hatched ovals
+  // faint wobbly field border sketch
   ctx.save();
-  ctx.strokeStyle='#a08050';
-  ctx.lineWidth=1;
-  ctx.globalAlpha=0.2;
-  [[W*0.3,H*0.4,70,35,0.3],[W*0.7,H*0.65,55,28,-0.2],[W*0.15,H*0.72,45,22,0.1]].forEach(([x,y,rw,rh,rot])=>{
-    ctx.save();ctx.translate(x,y);ctx.rotate(rot);
-    for(let s=-rw;s<rw;s+=6){
-      let yOff=Math.sqrt(Math.max(0,1-(s/rw)**2))*rh;
-      ctx.beginPath();ctx.moveTo(s,-yOff);ctx.lineTo(s,yOff);ctx.stroke();
-    }
-    ctx.restore();
-  });
+  ctx.strokeStyle='rgba(60,50,20,0.2)';
+  ctx.lineWidth=1.5;
+  ctx.setLineDash([6,8]);
+  ctx.beginPath();
+  ctx.moveTo(28,28); ctx.lineTo(W-28,28);
+  ctx.lineTo(W-28,H-28); ctx.lineTo(28,H-28);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.setLineDash([]);
   ctx.restore();
 }
 
@@ -978,8 +1224,8 @@ function loop(ts){
   drawHawk();
   drawFloaties();
 
-  // HUD score live
-  document.getElementById('hud-score').textContent=player.score+' 🥕';
+  document.getElementById('hud-score').textContent=player.score;
+  document.getElementById('hud-houses').textContent=Math.max(1,BASE_HOUSES-(round-1));
 }
 
 // ── start ─────────────────────────────────────────────────────────────────
