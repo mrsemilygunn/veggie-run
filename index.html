@@ -206,7 +206,8 @@ const VEGGIE_SCORE = {'🥕':1,'🥦':2,'🌽':1,'🥬':1,'🍅':2,'🫑':2};
 const TOTAL_ROUNDS = 5;
 const BASE_HOUSES = 5; // round 1 houses
 
-let round=1, phase='title'; // phases: title, playing, hawk, hawk-grace, result, gameover
+let round=1, phase='title'; // phases: title, countdown, playing, hawk, hawk-grace, result, gameover
+let countdownVal=3, countdownTimer=0;
 let firstHawk=true;
 let keys={};
 let frameId;
@@ -352,30 +353,36 @@ function drawHawk(){
 
 function launchHawk(){
   let fromLeft=Math.random()<0.5;
-  let baseSpeed = 2.0 + round*0.25;
-  // hawk starts off screen, curves across the field
-  // give it waypoints: enter, swoop across middle, exit other side
+  // Slower hawk — speed/1200 increment means full pass takes ~600+ frames
+  let baseSpeed = 1.2 + round*0.15;
+
   let startX = fromLeft ? -80 : W+80;
-  let startY = 50+Math.random()*100;
   let endX   = fromLeft ? W+80 : -80;
-  let endY   = 50+Math.random()*100;
-  // mid-swoop dips down into the field
-  let midY   = 80+Math.random()*(H-160);
+  let startY = rnd(60, H*0.4);
+  let endY   = rnd(60, H*0.4);
+
+  // Control point MUST be offset horizontally from the midpoint to create
+  // a visible curve — push it left or right of centre, and deep into the field
+  let cpX = fromLeft
+    ? rnd(W*0.3, W*0.7)   // from-left hawk: control point somewhere in right half
+    : rnd(W*0.3, W*0.7);  // same range, bezier mirrors naturally
+  // Push control point well below the entry/exit heights so the curve is obvious
+  let cpY = rnd(H*0.45, H*0.85);
 
   hawk={
     active:true,
     x:startX, y:startY,
-    vx:0, vy:0,
+    vx:fromLeft?1:-1, vy:0,
     trail:[],
-    // parametric path: t goes 0→1
     t:0,
     speed: baseSpeed,
     fromLeft,
-    startX,startY,endX,endY,midY,
+    startX, startY,
+    endX, endY,
+    cpX, cpY,   // named control point, no longer "midY"
     done:false
   };
 
-  // reset caught states
   player.caught=false;
   rivals.forEach(r=>r.caught=false);
 
@@ -393,7 +400,6 @@ function launchHawk(){
   }
 }
 
-// quadratic bezier position
 function bezier(t, p0, p1, p2){
   let mt=1-t;
   return mt*mt*p0 + 2*mt*t*p1 + t*t*p2;
@@ -402,22 +408,19 @@ function bezier(t, p0, p1, p2){
 function updateHawk(){
   if(!hawk.active) return;
 
-  // advance t based on speed
   hawk.t += hawk.speed/1200;
 
-  // bezier curve across field — control point is midY at center x
-  let cx = (hawk.startX+hawk.endX)/2;
-  hawk.x = bezier(hawk.t, hawk.startX, cx, hawk.endX);
-  hawk.y = bezier(hawk.t, hawk.startY, hawk.midY, hawk.endY);
+  // Use the offset cpX/cpY so the path genuinely curves
+  hawk.x = bezier(hawk.t, hawk.startX, hawk.cpX, hawk.endX);
+  hawk.y = bezier(hawk.t, hawk.startY, hawk.cpY, hawk.endY);
 
-  // track direction for flip
-  hawk.vx = hawk.fromLeft ? 1 : -1;
+  // direction for sprite flip: use derivative of bezier
+  let prevX = bezier(Math.max(0,hawk.t-0.01), hawk.startX, hawk.cpX, hawk.endX);
+  hawk.vx = hawk.x - prevX; // positive = moving right
 
-  // record trail (keep last 20 points)
   hawk.trail.push({x:hawk.x, y:hawk.y});
-  if(hawk.trail.length>22) hawk.trail.shift();
+  if(hawk.trail.length>28) hawk.trail.shift();
 
-  // hawk finished pass (t >= 1)
   if(hawk.t>=1){
     hawk.active=false;
     dangerEl.classList.remove('active');
@@ -429,7 +432,6 @@ function updateHawk(){
     return;
   }
 
-  // catch unsheltered guinea pigs
   if(phase==='hawk'){
     if(!player.hiding && !player.caught){
       if(dist(hawk,player)<46){
@@ -505,7 +507,10 @@ function initRound(){
 
   dangerEl.classList.remove('active');
   warningEl.classList.remove('show');
-  phase='playing';
+  // brief countdown before play starts
+  countdownVal=3;
+  countdownTimer=0;
+  phase='countdown';
 }
 
 function spawnVeggie(){
@@ -758,20 +763,38 @@ function showRoundResult(){
   dangerEl.classList.remove('active');
   warningEl.classList.remove('show');
 
-  let playerSafe = player.hiding || !player.caught;
-  let all=[
-    {name:'You',score:player.score,total:playerTotal,safe:playerSafe,emoji:'🐹'},
-    {name:'Ginger',score:rivals[0].score,total:rivalTotals[0],safe:rivals[0].hiding||!rivals[0].caught,emoji:'🐹'},
-    {name:'Rosie',score:rivals[1].score,total:rivalTotals[1],safe:rivals[1].hiding||!rivals[1].caught,emoji:'🐹'},
-    {name:'Biscuit',score:rivals[2].score,total:rivalTotals[2],safe:rivals[2].hiding||!rivals[2].caught,emoji:'🐹'},
-  ].sort((a,b)=>b.score-a.score);
+  // safe = was hiding when hawk left. caught = got hit by hawk. 
+  // If there weren't enough houses, unhidden guinea pigs who weren't physically hit are neither — show neutral.
+  let numHouses = Math.max(1, BASE_HOUSES - (round-1));
+  let totalGPs = 4; // player + 3 rivals
+  let housesShorted = numHouses < totalGPs;
 
-  let nextHouses=Math.max(1,BASE_HOUSES-(round));
-  let safeTag = p => p.safe ? '<span style="color:#86efac">✓ safe</span>' : '<span style="color:#fca5a5">✗ caught</span>';
+  function safeStatus(gp){
+    if(gp.caught) return 'caught';
+    if(gp.hiding) return 'safe';
+    // was outside but not hit — only show as "safe" if there were enough houses for everyone
+    return housesShorted ? 'lucky' : 'safe';
+  }
+
+  let allGPs=[
+    {name:'You', gp:player, score:player.score, total:playerTotal},
+    {name:'Ginger', gp:rivals[0], score:rivals[0].score, total:rivalTotals[0]},
+    {name:'Rosie',  gp:rivals[1], score:rivals[1].score, total:rivalTotals[1]},
+    {name:'Biscuit',gp:rivals[2], score:rivals[2].score, total:rivalTotals[2]},
+  ].map(p=>({...p, status:safeStatus(p.gp)}))
+   .sort((a,b)=>b.score-a.score);
+
+  function safeTag(status){
+    if(status==='safe')   return '<span style="color:#86efac">✓ safe</span>';
+    if(status==='caught') return '<span style="color:#fca5a5">✗ caught</span>';
+    return '<span style="color:#fde68a">~ outside</span>';
+  }
+
+  let nextHouses=Math.max(1,BASE_HOUSES-round);
   let html=`<h2>Round ${round} done!</h2>
     <p>Next round: only <strong>${nextHouses} hidey house${nextHouses>1?'s':''}</strong>. Watch out!</p>
     <div class="scores">
-    ${all.map(p=>`<div class="score-card">${p.emoji} ${p.name}<br>${safeTag(p)}<br><span>this round</span>+${p.score} 🥕<br><span>total</span>${p.total} 🥕</div>`).join('')}
+    ${allGPs.map(p=>`<div class="score-card">🐹 ${p.name}<br>${safeTag(p.status)}<br><span>this round</span>+${p.score} 🥕<br><span>total</span>${p.total} 🥕</div>`).join('')}
     </div>
     <button id="start-btn">Round ${round+1} →</button>`;
   overlay.innerHTML=html;
@@ -835,6 +858,33 @@ function loop(ts){
   frameId=requestAnimationFrame(loop);
 
   if(phase==='title'||phase==='result'||phase==='gameover') return;
+
+  // countdown freeze
+  if(phase==='countdown'){
+    countdownTimer+=dt;
+    // draw everything frozen
+    drawBg();
+    veggies.forEach(v=>drawVeggie(v));
+    houses.forEach(h=>drawHouse(h));
+    rivals.forEach(r=>drawGP(r,false));
+    drawGP(player,true);
+    // big countdown number
+    let num = countdownTimer<1000?'3':countdownTimer<2000?'2':countdownTimer<3000?'1':'GO!';
+    let scale = 1+(0.3*((countdownTimer%1000)/1000)); // pulse
+    ctx.save();
+    ctx.globalAlpha=Math.min(1,1.2-((countdownTimer%1000)/1000));
+    ctx.font=`bold ${Math.round(80*scale)}px "Fredoka One",cursive`;
+    ctx.fillStyle='#ffd84d';
+    ctx.strokeStyle='rgba(0,0,0,0.5)';
+    ctx.lineWidth=6;
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    ctx.strokeText(num,W/2,H/2);
+    ctx.fillText(num,W/2,H/2);
+    ctx.restore();
+    if(countdownTimer>=3400) phase='playing';
+    return;
+  }
 
   // hawk timer
   if(phase==='playing'){
