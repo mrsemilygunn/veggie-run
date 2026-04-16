@@ -337,12 +337,11 @@ function drawVeggie(v){
 
 function drawHawk(){
   if(!hawk.active) return;
-  // draw subtle flight trail
   if(hawk.trail && hawk.trail.length>1){
     ctx.save();
-    ctx.strokeStyle='rgba(180,60,60,0.18)';
+    ctx.strokeStyle='rgba(180,60,60,0.15)';
     ctx.lineWidth=2;
-    ctx.setLineDash([4,6]);
+    ctx.setLineDash([4,8]);
     ctx.beginPath();
     hawk.trail.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
     ctx.stroke();
@@ -352,34 +351,21 @@ function drawHawk(){
 }
 
 function launchHawk(){
-  let fromLeft=Math.random()<0.5;
-  // Slower hawk — speed/1200 increment means full pass takes ~600+ frames
-  let baseSpeed = 1.2 + round*0.15;
+  // enter from a random edge
+  let side=rndInt(0,3); // 0=top,1=right,2=bottom,3=left
+  let sx,sy;
+  if(side===0){sx=rnd(100,W-100);sy=-60;}
+  else if(side===1){sx=W+60;sy=rnd(80,H-80);}
+  else if(side===2){sx=rnd(100,W-100);sy=H+60;}
+  else{sx=-60;sy=rnd(80,H-80);}
 
-  let startX = fromLeft ? -80 : W+80;
-  let endX   = fromLeft ? W+80 : -80;
-  let startY = rnd(60, H*0.4);
-  let endY   = rnd(60, H*0.4);
-
-  // Control point MUST be offset horizontally from the midpoint to create
-  // a visible curve — push it left or right of centre, and deep into the field
-  let cpX = fromLeft
-    ? rnd(W*0.3, W*0.7)   // from-left hawk: control point somewhere in right half
-    : rnd(W*0.3, W*0.7);  // same range, bezier mirrors naturally
-  // Push control point well below the entry/exit heights so the curve is obvious
-  let cpY = rnd(H*0.45, H*0.85);
-
+  let spd=2.2+round*0.2;
   hawk={
     active:true,
-    x:startX, y:startY,
-    vx:fromLeft?1:-1, vy:0,
+    x:sx,y:sy,
+    vx:rnd(-1,1),vy:rnd(-1,1),
+    speed:spd,
     trail:[],
-    t:0,
-    speed: baseSpeed,
-    fromLeft,
-    startX, startY,
-    endX, endY,
-    cpX, cpY,   // named control point, no longer "midY"
     done:false
   };
 
@@ -400,28 +386,17 @@ function launchHawk(){
   }
 }
 
-function bezier(t, p0, p1, p2){
-  let mt=1-t;
-  return mt*mt*p0 + 2*mt*t*p1 + t*t*p2;
-}
-
 function updateHawk(){
   if(!hawk.active) return;
 
-  hawk.t += hawk.speed/1200;
+  // ── find target: nearest unhidden, uncaught guinea pig ──
+  let targets=[];
+  if(!player.hiding && !player.caught) targets.push(player);
+  rivals.forEach(r=>{if(!r.hiding && !r.caught) targets.push(r);});
 
-  // Use the offset cpX/cpY so the path genuinely curves
-  hawk.x = bezier(hawk.t, hawk.startX, hawk.cpX, hawk.endX);
-  hawk.y = bezier(hawk.t, hawk.startY, hawk.cpY, hawk.endY);
-
-  // direction for sprite flip: use derivative of bezier
-  let prevX = bezier(Math.max(0,hawk.t-0.01), hawk.startX, hawk.cpX, hawk.endX);
-  hawk.vx = hawk.x - prevX; // positive = moving right
-
-  hawk.trail.push({x:hawk.x, y:hawk.y});
-  if(hawk.trail.length>28) hawk.trail.shift();
-
-  if(hawk.t>=1){
+  // check if all guinea pigs are safe or caught — end round
+  let allDone = targets.length===0;
+  if(allDone){
     hawk.active=false;
     dangerEl.classList.remove('active');
     warningEl.classList.remove('show');
@@ -432,25 +407,51 @@ function updateHawk(){
     return;
   }
 
+  // steer toward nearest target
+  let nearest=null, nd=Infinity;
+  targets.forEach(t=>{let d=dist(hawk,t);if(d<nd){nd=d;nearest=t;}});
+
+  if(nearest){
+    let dx=nearest.x-hawk.x, dy=nearest.y-hawk.y, d=Math.hypot(dx,dy)||1;
+    let turnRate=0.06; // how sharply hawk can turn
+    hawk.vx+=(dx/d)*turnRate;
+    hawk.vy+=(dy/d)*turnRate;
+  }
+
+  // keep hawk inside field with soft boundary push
+  let margin=60;
+  if(hawk.x<margin)   hawk.vx+=0.15;
+  if(hawk.x>W-margin) hawk.vx-=0.15;
+  if(hawk.y<margin)   hawk.vy+=0.15;
+  if(hawk.y>H-margin) hawk.vy-=0.15;
+
+  // normalize to constant speed
+  let spd=Math.hypot(hawk.vx,hawk.vy)||1;
+  hawk.vx=hawk.vx/spd*hawk.speed;
+  hawk.vy=hawk.vy/spd*hawk.speed;
+
+  hawk.x+=hawk.vx;
+  hawk.y+=hawk.vy;
+
+  hawk.trail.push({x:hawk.x,y:hawk.y});
+  if(hawk.trail.length>30) hawk.trail.shift();
+
+  // catches
   if(phase==='hawk'){
-    if(!player.hiding && !player.caught){
-      if(dist(hawk,player)<46){
-        player.caught=true;
-        let penalty=Math.max(5,Math.round(player.score*0.25));
-        player.score=Math.max(0,player.score-penalty);
-        spawnFloaty(player.x,player.y-10,`-${penalty} 🥕`);
-        warningEl.textContent='😱 CAUGHT!';
-        setTimeout(()=>{if(hawk.active)warningEl.textContent='🦅 HAWK!';},1800);
-      }
+    if(!player.hiding && !player.caught && dist(hawk,player)<44){
+      player.caught=true;
+      let penalty=Math.max(5,Math.round(player.score*0.25));
+      player.score=Math.max(0,player.score-penalty);
+      spawnFloaty(player.x,player.y-10,`-${penalty} 🥕`);
+      warningEl.textContent='😱 CAUGHT!';
+      setTimeout(()=>{if(hawk.active)warningEl.textContent='🦅 HAWK!';},1500);
     }
     rivals.forEach(r=>{
-      if(!r.hiding && !r.caught){
-        if(dist(hawk,r)<40){
-          r.caught=true;
-          let pen=Math.max(3,Math.round(r.score*0.25));
-          r.score=Math.max(0,r.score-pen);
-          spawnFloaty(r.x,r.y-10,`-${pen} 🥕`,'#ffaa44');
-        }
+      if(!r.hiding && !r.caught && dist(hawk,r)<38){
+        r.caught=true;
+        let pen=Math.max(3,Math.round(r.score*0.25));
+        r.score=Math.max(0,r.score-pen);
+        spawnFloaty(r.x,r.y-10,`-${pen} 🥕`,'#ffaa44');
       }
     });
   }
@@ -501,8 +502,8 @@ function initRound(){
   }
 
   // hawk placeholder — launchHawk() fills it in properly
-  hawk={active:false,t:0,trail:[]};
-  hawkInterval = Math.max(10000, 20000 - (round-1)*2000);
+  hawk={active:false,x:-100,y:-100,vx:0,vy:0,trail:[]};
+  hawkInterval = Math.max(12000, 22000 - (round-1)*2000);
   hawkTimer = hawkInterval;
 
   dangerEl.classList.remove('active');
@@ -539,50 +540,54 @@ function maintainVeggies(){
 // ── AI ────────────────────────────────────────────────────────────────────
 function updateRival(r){
   if(r.hiding) return;
-  if(r.caught) return; // stunned until hawk leaves
 
   if(phase==='hawk'||phase==='hawk-grace'){
-    // find nearest free house, but also factor in fleeing from hawk
-    let best=null, bd=Infinity;
-    houses.forEach(h=>{
-      if(h.occupant===null||h.occupant===r){
-        let d=dist(r,h);
-        if(d<bd){bd=d;best=h;}
+    if(r.caught){
+      // stumble slowly away from hawk
+      if(hawk.active){
+        let hx=r.x-hawk.x, hy=r.y-hawk.y, hd=Math.hypot(hx,hy)||1;
+        r.x+=hx/hd*r.speed*0.3;
+        r.y+=hy/hd*r.speed*0.3;
+        clampToWorld(r);
       }
-    });
-
-    if(best && bd<30 && best.occupant===null){
-      hideIn(r,best);
       return;
     }
 
-    if(best){
-      // move toward house but also veer away from hawk
-      let dx=best.x-r.x, dy=best.y-r.y, d=Math.hypot(dx,dy)||1;
-      let mx=dx/d, my=dy/d;
-
-      if(hawk.active){
-        let hx=r.x-hawk.x, hy=r.y-hawk.y, hd=Math.hypot(hx,hy)||1;
-        let flee = Math.max(0, 1-(hd/200));
-        mx+=hx/hd*flee*2; my+=hy/hd*flee*2;
-        let ml=Math.hypot(mx,my)||1;
-        mx/=ml; my/=ml;
+    // find nearest free house
+    let best=null, bd=Infinity;
+    houses.forEach(h=>{
+      if(h.occupant===null||h.occupant===r){
+        let d=dist(r,h); if(d<bd){bd=d;best=h;}
       }
-      r.x+=mx*r.speed*1.6;
-      r.y+=my*r.speed*1.6;
-      r.vx=mx; r.vy=my;
-    } else if(hawk.active){
-      // no house available — just flee from hawk
-      let hx=r.x-hawk.x, hy=r.y-hawk.y, hd=Math.hypot(hx,hy)||1;
-      r.x+=hx/hd*r.speed*1.6;
-      r.y+=hy/hd*r.speed*1.6;
-      r.vx=hx/hd; r.vy=hy/hd;
+    });
+
+    // actively flee hawk while moving toward house
+    let mx=0,my=0;
+    if(best){
+      let dx=best.x-r.x, dy=best.y-r.y, d=Math.hypot(dx,dy)||1;
+      mx=dx/d; my=dy/d;
     }
+    if(hawk.active){
+      let hx=r.x-hawk.x, hy=r.y-hawk.y, hd=Math.hypot(hx,hy)||1;
+      let urgency=Math.max(0,1-hd/250);
+      mx+=hx/hd*(1+urgency*3);
+      my+=hy/hd*(1+urgency*3);
+      let ml=Math.hypot(mx,my)||1;
+      mx/=ml; my/=ml;
+    }
+    r.x+=mx*r.speed*1.5;
+    r.y+=my*r.speed*1.5;
+    r.vx=mx; r.vy=my;
     clampToWorld(r);
+
+    // enter house if close enough and vacant
+    if(best && dist(r,best)<28 && best.occupant===null){
+      hideIn(r,best);
+    }
     return;
   }
 
-  // foraging — find nearest veggie
+  // foraging
   if(!r.target||r.target.collected){
     let best=null,bd=Infinity;
     veggies.forEach(v=>{
@@ -726,7 +731,7 @@ function updatePlayer(){
   player.y+=player.vy;
   clampToWorld(player);
 
-  // collect veggies (only if not caught)
+  // collect veggies unless caught
   if(!player.caught){
     veggies.forEach(v=>{
       if(!v.collected&&dist(player,v)<22){
@@ -736,8 +741,8 @@ function updatePlayer(){
     });
   }
 
-  // enter house during hawk
-  if(phase==='hawk'||phase==='hawk-grace'){
+  // enter house during hawk (either phase)
+  if((phase==='hawk'||phase==='hawk-grace') && !player.caught){
     houses.forEach(h=>{
       if(h.occupant===null&&dist(player,h)<30){
         hideIn(player,h);
@@ -896,7 +901,7 @@ function loop(ts){
   rivals.forEach(r=>updateRival(r));
   updateHawk();
   updateFloaties();
-  if(phase==='playing') maintainVeggies();
+  maintainVeggies();
 
   // draw
   drawBg();
