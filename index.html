@@ -251,63 +251,78 @@ function drawEmoji(e,x,y,size,flip=false,opacity=1){
   ctx.restore();
 }
 
+// floaty penalty text popups
+let floaties=[];
+function spawnFloaty(x,y,text,color='#ff4444'){
+  floaties.push({x,y,text,color,life:1.0});
+}
+function updateFloaties(){
+  floaties=floaties.filter(f=>f.life>0);
+  floaties.forEach(f=>f.life-=0.018);
+}
+function drawFloaties(){
+  floaties.forEach(f=>{
+    ctx.save();
+    ctx.globalAlpha=f.life;
+    ctx.font='bold 22px "Fredoka One",cursive';
+    ctx.fillStyle=f.color;
+    ctx.strokeStyle='rgba(0,0,0,0.6)';
+    ctx.lineWidth=3;
+    ctx.textAlign='center';
+    ctx.textBaseline='middle';
+    let yOff=(1-f.life)*60;
+    ctx.strokeText(f.text,f.x,f.y-yOff);
+    ctx.fillText(f.text,f.x,f.y-yOff);
+    ctx.restore();
+  });
+}
+
 function drawGP(gp, isPlayer=false){
   if(gp.hiding){
     ctx.save(); ctx.globalAlpha=0.35;
     drawEmoji('🐹',gp.x,gp.y,22,gp.vx<0);
     ctx.restore(); return;
   }
-  // caught — show dazed/spinning
-  if(gp.caught && (phase==='hawk'||phase==='hawk-grace')){
-    ctx.save(); ctx.globalAlpha=0.6;
-    drawEmoji('💫',gp.x,gp.y-8,20);
-    ctx.restore();
+  // caught — show dazed star
+  if(gp.caught){
+    drawEmoji('💫',gp.x,gp.y-18,16);
   }
-  // shadow
-  ctx.save(); ctx.globalAlpha=0.18;
-  ctx.fillStyle='#000';
-  ctx.ellipse(gp.x,gp.y+12,14,5,0,0,Math.PI*2);
-  ctx.fill(); ctx.restore();
 
-  let opacity = gp.caught ? 0.5 : 1;
+  let opacity = gp.caught ? 0.55 : 1;
   drawEmoji('🐹',gp.x,gp.y,isPlayer?28:22,gp.vx<0,opacity);
   if(isPlayer){
     ctx.save();
     ctx.font='bold 11px Nunito,sans-serif';
     ctx.fillStyle='#ffd84d';
     ctx.textAlign='center';
-    ctx.fillText('YOU',gp.x,gp.y-20);
+    ctx.fillText('YOU',gp.x,gp.y-22);
     ctx.restore();
   }
 }
 
 function drawHouse(h){
   ctx.save();
-  // bounce animation when hawk is near
   let by = h.bounce ? Math.sin(Date.now()/120)*5 : 0;
   let y = h.y + by;
 
-  // glow if bouncing
-  if(h.bounce){
+  if(h.bounce && h.occupant===null){
     ctx.shadowColor='#ffd84d';
-    ctx.shadowBlur=18;
+    ctx.shadowBlur=20;
   }
 
-  // occupied?
-  if(h.occupant!==null){
-    ctx.globalAlpha=0.6;
-  }
-
-  ctx.font=`38px serif`;
+  ctx.font='38px serif';
   ctx.textAlign='center';
   ctx.textBaseline='middle';
-  ctx.fillText('🏠',h.x,y);
 
   if(h.occupant!==null){
-    // tiny guinea pig peeking
-    ctx.globalAlpha=0.9;
-    ctx.font='14px serif';
-    ctx.fillText('🐹',h.x+10,y+4);
+    // occupied: slightly dim, draw a little lock indicator
+    ctx.globalAlpha=0.75;
+    ctx.fillText('🏠',h.x,y);
+    ctx.globalAlpha=1;
+    ctx.font='13px serif';
+    ctx.fillText('🔒',h.x+14,y-14);
+  } else {
+    ctx.fillText('🏠',h.x,y);
   }
   ctx.restore();
 }
@@ -321,15 +336,123 @@ function drawVeggie(v){
 
 function drawHawk(){
   if(!hawk.active) return;
-  // shadow on ground
-  ctx.save(); ctx.globalAlpha=0.12+0.08*Math.sin(Date.now()/200);
-  ctx.fillStyle='#000';
-  ctx.ellipse(hawk.x,H*0.7,30,8,0,0,Math.PI*2);
-  ctx.fill(); ctx.restore();
+  // draw subtle flight trail
+  if(hawk.trail && hawk.trail.length>1){
+    ctx.save();
+    ctx.strokeStyle='rgba(180,60,60,0.18)';
+    ctx.lineWidth=2;
+    ctx.setLineDash([4,6]);
+    ctx.beginPath();
+    hawk.trail.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.stroke();
+    ctx.restore();
+  }
   drawEmoji('🦅',hawk.x,hawk.y,46,hawk.vx<0);
 }
 
-// ── init round ────────────────────────────────────────────────────────────
+function launchHawk(){
+  let fromLeft=Math.random()<0.5;
+  let baseSpeed = 2.0 + round*0.25;
+  // hawk starts off screen, curves across the field
+  // give it waypoints: enter, swoop across middle, exit other side
+  let startX = fromLeft ? -80 : W+80;
+  let startY = 50+Math.random()*100;
+  let endX   = fromLeft ? W+80 : -80;
+  let endY   = 50+Math.random()*100;
+  // mid-swoop dips down into the field
+  let midY   = 80+Math.random()*(H-160);
+
+  hawk={
+    active:true,
+    x:startX, y:startY,
+    vx:0, vy:0,
+    trail:[],
+    // parametric path: t goes 0→1
+    t:0,
+    speed: baseSpeed,
+    fromLeft,
+    startX,startY,endX,endY,midY,
+    done:false
+  };
+
+  // reset caught states
+  player.caught=false;
+  rivals.forEach(r=>r.caught=false);
+
+  dangerEl.classList.add('active');
+  warningEl.classList.add('show');
+  warningEl.textContent='🦅 HAWK!';
+  houses.forEach(h=>h.bounce=true);
+
+  if(firstHawk){
+    phase='hawk-grace';
+    firstHawk=false;
+    setTimeout(()=>{if(phase==='hawk-grace') phase='hawk';},4000);
+  } else {
+    phase='hawk';
+  }
+}
+
+// quadratic bezier position
+function bezier(t, p0, p1, p2){
+  let mt=1-t;
+  return mt*mt*p0 + 2*mt*t*p1 + t*t*p2;
+}
+
+function updateHawk(){
+  if(!hawk.active) return;
+
+  // advance t based on speed
+  hawk.t += hawk.speed/1200;
+
+  // bezier curve across field — control point is midY at center x
+  let cx = (hawk.startX+hawk.endX)/2;
+  hawk.x = bezier(hawk.t, hawk.startX, cx, hawk.endX);
+  hawk.y = bezier(hawk.t, hawk.startY, hawk.midY, hawk.endY);
+
+  // track direction for flip
+  hawk.vx = hawk.fromLeft ? 1 : -1;
+
+  // record trail (keep last 20 points)
+  hawk.trail.push({x:hawk.x, y:hawk.y});
+  if(hawk.trail.length>22) hawk.trail.shift();
+
+  // hawk finished pass (t >= 1)
+  if(hawk.t>=1){
+    hawk.active=false;
+    dangerEl.classList.remove('active');
+    warningEl.classList.remove('show');
+    houses.forEach(h=>{h.bounce=false; h.occupant=null;});
+    if(player.hiding) leaveHouse(player);
+    rivals.forEach(r=>{if(r.hiding)leaveHouse(r);});
+    endRound();
+    return;
+  }
+
+  // catch unsheltered guinea pigs
+  if(phase==='hawk'){
+    if(!player.hiding && !player.caught){
+      if(dist(hawk,player)<46){
+        player.caught=true;
+        let penalty=Math.max(5,Math.round(player.score*0.25));
+        player.score=Math.max(0,player.score-penalty);
+        spawnFloaty(player.x,player.y-10,`-${penalty} 🥕`);
+        warningEl.textContent='😱 CAUGHT!';
+        setTimeout(()=>{if(hawk.active)warningEl.textContent='🦅 HAWK!';},1800);
+      }
+    }
+    rivals.forEach(r=>{
+      if(!r.hiding && !r.caught){
+        if(dist(hawk,r)<40){
+          r.caught=true;
+          let pen=Math.max(3,Math.round(r.score*0.25));
+          r.score=Math.max(0,r.score-pen);
+          spawnFloaty(r.x,r.y-10,`-${pen} 🥕`,'#ffaa44');
+        }
+      }
+    });
+  }
+}
 function initRound(){
   let numHouses = Math.max(1, BASE_HOUSES - (round-1));
   document.getElementById('hud-houses').textContent=numHouses+' 🏠';
@@ -375,8 +498,8 @@ function initRound(){
     houses.push({x:candidates[i].x, y:candidates[i].y, occupant:null, bounce:false});
   }
 
-  // hawk — first hawk arrives after 20s, then every 18s (decreasing each round)
-  hawk={active:false,x:-100,y:80+Math.random()*120,vx:3,vy:0,done:false};
+  // hawk placeholder — launchHawk() fills it in properly
+  hawk={active:false,t:0,trail:[]};
   hawkInterval = Math.max(10000, 20000 - (round-1)*2000);
   hawkTimer = hawkInterval;
 
@@ -411,27 +534,50 @@ function maintainVeggies(){
 // ── AI ────────────────────────────────────────────────────────────────────
 function updateRival(r){
   if(r.hiding) return;
-  if(r.caught && (phase==='hawk'||phase==='hawk-grace')) return; // stunned
+  if(r.caught) return; // stunned until hawk leaves
 
   if(phase==='hawk'||phase==='hawk-grace'){
-    // find nearest free house
-    let best=null,bd=Infinity;
+    // find nearest free house, but also factor in fleeing from hawk
+    let best=null, bd=Infinity;
     houses.forEach(h=>{
       if(h.occupant===null||h.occupant===r){
         let d=dist(r,h);
         if(d<bd){bd=d;best=h;}
       }
     });
-    if(best){
-      moveToward(r,best.x,best.y);
-      if(dist(r,best)<22&&best.occupant===null){
-        hideIn(r,best);
-      }
+
+    if(best && bd<30 && best.occupant===null){
+      hideIn(r,best);
+      return;
     }
+
+    if(best){
+      // move toward house but also veer away from hawk
+      let dx=best.x-r.x, dy=best.y-r.y, d=Math.hypot(dx,dy)||1;
+      let mx=dx/d, my=dy/d;
+
+      if(hawk.active){
+        let hx=r.x-hawk.x, hy=r.y-hawk.y, hd=Math.hypot(hx,hy)||1;
+        let flee = Math.max(0, 1-(hd/200));
+        mx+=hx/hd*flee*2; my+=hy/hd*flee*2;
+        let ml=Math.hypot(mx,my)||1;
+        mx/=ml; my/=ml;
+      }
+      r.x+=mx*r.speed*1.6;
+      r.y+=my*r.speed*1.6;
+      r.vx=mx; r.vy=my;
+    } else if(hawk.active){
+      // no house available — just flee from hawk
+      let hx=r.x-hawk.x, hy=r.y-hawk.y, hd=Math.hypot(hx,hy)||1;
+      r.x+=hx/hd*r.speed*1.6;
+      r.y+=hy/hd*r.speed*1.6;
+      r.vx=hx/hd; r.vy=hy/hd;
+    }
+    clampToWorld(r);
     return;
   }
 
-  // foraging — find nearest veggie, wander slowly
+  // foraging — find nearest veggie
   if(!r.target||r.target.collected){
     let best=null,bd=Infinity;
     veggies.forEach(v=>{
@@ -542,11 +688,7 @@ function updateHawk(){
   }
 }
 
-function showCaughtEffect(who){
-  warningEl.textContent='😱 CAUGHT! -4 veggies';
-  warningEl.classList.add('show');
-  setTimeout(()=>{warningEl.textContent='🦅 HAWK!';},2000);
-}
+// (caught feedback now via spawnFloaty — see updateHawk)
 
 // ── player input ──────────────────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
@@ -703,6 +845,7 @@ function loop(ts){
   updatePlayer();
   rivals.forEach(r=>updateRival(r));
   updateHawk();
+  updateFloaties();
   if(phase==='playing') maintainVeggies();
 
   // draw
@@ -712,6 +855,7 @@ function loop(ts){
   rivals.forEach(r=>drawGP(r,false));
   drawGP(player,true);
   drawHawk();
+  drawFloaties();
 
   // HUD score live
   document.getElementById('hud-score').textContent=player.score+' 🥕';
