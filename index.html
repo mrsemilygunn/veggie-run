@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Veggie Run!</title>
+<title>Guinea Pig Buffet</title>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Architects+Daughter&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -96,7 +96,7 @@ canvas{
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  background:rgba(245,240,232,0.95);
+  background:linear-gradient(160deg,#b8d98a 0%,#c8e8a0 35%,#a8c878 65%,#90b860 100%);
   z-index:20;
   color:var(--ink);
   text-align:center;
@@ -106,18 +106,28 @@ canvas{
 
 #overlay h2{
   font-family:'Caveat',cursive;
-  font-size:clamp(2.4rem,7vw,4rem);
+  font-size:clamp(2.8rem,8vw,5rem);
   font-weight:700;
-  color:var(--ink);
-  margin-bottom:10px;
+  color:#2a1a0a;
+  margin-bottom:6px;
+  text-shadow:2px 3px 0 rgba(255,255,255,0.4);
+  line-height:1.1;
 }
-#overlay p{font-size:20px;color:var(--ink-mid);max-width:480px;line-height:1.7;margin-bottom:18px;font-family:'Architects Daughter',cursive;}
+#overlay .title-sub{
+  font-family:'Architects Daughter',cursive;
+  font-size:16px;
+  color:#3d5a20;
+  margin-bottom:22px;
+  letter-spacing:2px;
+  text-transform:lowercase;
+}
+#overlay p{font-size:20px;color:#2a3a18;max-width:480px;line-height:1.7;margin-bottom:22px;font-family:'Architects Daughter',cursive;background:rgba(255,255,255,0.35);padding:14px 20px;border:1.5px solid rgba(60,80,20,0.25);}
 #overlay .scores{
   display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:20px
 }
 #overlay .score-card{
-  background:var(--paper-dark);
-  border:1.5px solid var(--ink);
+  background:rgba(255,255,255,0.6);
+  border:1.5px solid rgba(60,50,20,0.3);
   padding:10px 16px;
   font-family:'Architects Daughter',cursive;
   font-size:15px;
@@ -187,8 +197,9 @@ canvas{
   <div id="hawk-warning">HAWK!</div>
 
   <div id="overlay">
-    <h2>Veggie Run!</h2>
-    <p>Collect veggies with the arrow keys. When the hawk appears — hide in a house! Each round there are fewer houses...</p>
+    <h2>Guinea Pig Buffet</h2>
+    <div class="title-sub">a veggie-grabbing survival game</div>
+    <p>Grab veggies with the arrow keys. When the hawk swoops in — hide in a house! Each round, fewer houses...</p>
     <button id="start-btn">Start Game</button>
   </div>
 </div>
@@ -596,6 +607,7 @@ function updateHawk(){
   }
 
   // Turn toward target (strong turn rate so it actually curves)
+  let prevVx=hawk.vx, prevVy=hawk.vy;
   if(target){
     let dx=target.x-hawk.x, dy=target.y-hawk.y, d=Math.hypot(dx,dy)||1;
     hawk.vx += (dx/d) * 0.25;
@@ -605,6 +617,15 @@ function updateHawk(){
     let dx=W/2-hawk.x, dy=H/2-hawk.y, d=Math.hypot(dx,dy)||1;
     hawk.vx += (dx/d) * 0.1;
     hawk.vy += (dy/d) * 0.1;
+  }
+
+  // Debug: log hawk state every 120 frames
+  if(!hawk._dbgFrame) hawk._dbgFrame=0;
+  hawk._dbgFrame++;
+  if(hawk._dbgFrame%120===0){
+    console.log('HAWK phase:',phase,'pos:',Math.round(hawk.x),Math.round(hawk.y),
+      'vel:',hawk.vx.toFixed(2),hawk.vy.toFixed(2),
+      'targets:',targets.length, 'active:',hawk.active);
   }
 
   // Hard wall bounce — never exits
@@ -1055,23 +1076,6 @@ function drawBg(){
     ctx.fill();
     ctx.restore();
   });
-
-  // sparse hand-drawn grass tufts — just strokes, no hatching
-  ctx.save();
-  ctx.strokeStyle='#5a7a30';
-  ctx.lineWidth=1.2;
-  ctx.globalAlpha=0.45;
-  const tufts=[[80,80],[220,150],[420,55],[640,95],[730,210],[750,410],[610,470],[310,450],[160,390],[55,270],[510,310],[360,210],[100,310],[680,320],[280,80],[560,430]];
-  tufts.forEach(([tx,ty])=>{
-    for(let b=0;b<3;b++){
-      let bx=tx+rnd(-12,12);
-      ctx.beginPath();
-      ctx.moveTo(bx,ty+4);
-      ctx.quadraticCurveTo(bx+rnd(-3,3),ty-rnd(6,12),bx+rnd(-2,2),ty-rnd(10,18));
-      ctx.stroke();
-    }
-  });
-  ctx.restore();
 
   // faint wobbly field border sketch
   ctx.save();
