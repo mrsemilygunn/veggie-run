@@ -105,12 +105,13 @@ canvas{
 #overlay.hidden{display:none}
 
 #overlay h2{
-  font-family:'Architects Daughter',cursive;
-  font-size:clamp(2rem,6vw,3.4rem);
+  font-family:'Caveat',cursive;
+  font-size:clamp(2.4rem,7vw,4rem);
+  font-weight:700;
   color:var(--ink);
   margin-bottom:10px;
 }
-#overlay p{font-size:18px;color:var(--ink-mid);max-width:480px;line-height:1.6;margin-bottom:18px;font-family:'Caveat',cursive;font-weight:600}
+#overlay p{font-size:20px;color:var(--ink-mid);max-width:480px;line-height:1.7;margin-bottom:18px;font-family:'Architects Daughter',cursive;}
 #overlay .scores{
   display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:20px
 }
@@ -539,26 +540,15 @@ function drawFloaties(){
 }
 
 function launchHawk(){
-  // start inside the field near an edge (not off-screen so it can't escape)
-  let side=rndInt(0,3);
-  let sx,sy;
-  let pad=80;
-  if(side===0){sx=rnd(pad,W-pad); sy=pad;}
-  else if(side===1){sx=W-pad;     sy=rnd(pad,H-pad);}
-  else if(side===2){sx=rnd(pad,W-pad); sy=H-pad;}
-  else             {sx=pad;        sy=rnd(pad,H-pad);}
-
-  // initial velocity pointing roughly toward center
-  let toCx=W/2-sx, toCy=H/2-sy, toC=Math.hypot(toCx,toCy)||1;
-  let spd=1.6+round*0.15; // slower — was 2.2
+  // Start near center of field so it can never immediately exit
   hawk={
     active:true,
-    x:sx, y:sy,
-    vx:(toCx/toC+rnd(-0.3,0.3))*spd,
-    vy:(toCy/toC+rnd(-0.3,0.3))*spd,
-    speed:spd,
+    x:rnd(W*0.3,W*0.7),
+    y:rnd(H*0.3,H*0.7),
+    vx:rnd(-1,1)||1,
+    vy:rnd(-1,1)||1,
+    speed:1.8+round*0.15,
     trail:[],
-    done:false
   };
 
   player.caught=false;
@@ -570,9 +560,9 @@ function launchHawk(){
   houses.forEach(h=>h.bounce=true);
 
   if(firstHawk){
-    phase='hawk-grace';
     firstHawk=false;
-    setTimeout(()=>{if(phase==='hawk-grace') phase='hawk';},4000);
+    phase='hawk-grace';
+    setTimeout(()=>{ if(phase==='hawk-grace') phase='hawk'; },4000);
   } else {
     phase='hawk';
   }
@@ -581,61 +571,62 @@ function launchHawk(){
 function updateHawk(){
   if(!hawk.active) return;
 
-  // ── find targets: unhidden, uncaught guinea pigs ──
+  // Count unresolved targets (not hiding, not caught)
   let targets=[];
   if(!player.hiding && !player.caught) targets.push(player);
-  rivals.forEach(r=>{if(!r.hiding && !r.caught) targets.push(r);});
+  rivals.forEach(r=>{ if(!r.hiding && !r.caught) targets.push(r); });
 
-  // only end round once we're in real hawk phase and all targets resolved
+  // End round only in real hawk phase when everything is resolved
   if(phase==='hawk' && targets.length===0){
     hawk.active=false;
     dangerEl.classList.remove('active');
     warningEl.classList.remove('show');
-    houses.forEach(h=>{h.bounce=false; h.occupant=null;});
+    houses.forEach(h=>{ h.bounce=false; h.occupant=null; });
     if(player.hiding) leaveHouse(player);
-    rivals.forEach(r=>{if(r.hiding)leaveHouse(r);});
+    rivals.forEach(r=>{ if(r.hiding) leaveHouse(r); });
     endRound();
     return;
   }
 
-  // steer toward nearest target (or patrol center if no targets yet)
-  let nearest=null, nd=Infinity;
-  targets.forEach(t=>{let d=dist(hawk,t);if(d<nd){nd=d;nearest=t;}});
-
-  if(nearest){
-    let dx=nearest.x-hawk.x, dy=nearest.y-hawk.y, d=Math.hypot(dx,dy)||1;
-    hawk.vx+=(dx/d)*0.08;
-    hawk.vy+=(dy/d)*0.08;
-  } else {
-    // grace period or all hiding — circle center loosely
-    let dx=W/2-hawk.x, dy=H/2-hawk.y, d=Math.hypot(dx,dy)||1;
-    hawk.vx+=(dx/d)*0.04;
-    hawk.vy+=(dy/d)*0.04;
+  // Pick nearest target to chase; during grace just orbit center
+  let target=null;
+  if(phase==='hawk' && targets.length>0){
+    let nd=Infinity;
+    targets.forEach(t=>{ let d=dist(hawk,t); if(d<nd){nd=d;target=t;} });
   }
 
-  // hard boundary — hawk MUST stay inside field
-  let margin=40;
-  if(hawk.x<margin)   { hawk.vx+=0.4; hawk.vx=Math.max(hawk.vx,0.5); }
-  if(hawk.x>W-margin) { hawk.vx-=0.4; hawk.vx=Math.min(hawk.vx,-0.5); }
-  if(hawk.y<margin)   { hawk.vy+=0.4; hawk.vy=Math.max(hawk.vy,0.5); }
-  if(hawk.y>H-margin) { hawk.vy-=0.4; hawk.vy=Math.min(hawk.vy,-0.5); }
+  // Turn toward target (strong turn rate so it actually curves)
+  if(target){
+    let dx=target.x-hawk.x, dy=target.y-hawk.y, d=Math.hypot(dx,dy)||1;
+    hawk.vx += (dx/d) * 0.25;
+    hawk.vy += (dy/d) * 0.25;
+  } else {
+    // No target yet — drift toward center
+    let dx=W/2-hawk.x, dy=H/2-hawk.y, d=Math.hypot(dx,dy)||1;
+    hawk.vx += (dx/d) * 0.1;
+    hawk.vy += (dy/d) * 0.1;
+  }
 
-  // clamp hawk position to field
-  hawk.x=clamp(hawk.x, margin, W-margin);
-  hawk.y=clamp(hawk.y, margin, H-margin);
+  // Hard wall bounce — never exits
+  if(hawk.x < 50)   hawk.vx = Math.abs(hawk.vx);
+  if(hawk.x > W-50) hawk.vx = -Math.abs(hawk.vx);
+  if(hawk.y < 50)   hawk.vy = Math.abs(hawk.vy);
+  if(hawk.y > H-50) hawk.vy = -Math.abs(hawk.vy);
 
-  // normalize to constant speed
+  // Normalize to constant speed
   let spd=Math.hypot(hawk.vx,hawk.vy)||1;
-  hawk.vx=hawk.vx/spd*hawk.speed;
-  hawk.vy=hawk.vy/spd*hawk.speed;
+  hawk.vx = hawk.vx/spd * hawk.speed;
+  hawk.vy = hawk.vy/spd * hawk.speed;
 
-  hawk.x+=hawk.vx;
-  hawk.y+=hawk.vy;
+  hawk.x += hawk.vx;
+  hawk.y += hawk.vy;
+  hawk.x = clamp(hawk.x, 50, W-50);
+  hawk.y = clamp(hawk.y, 50, H-50);
 
-  hawk.trail.push({x:hawk.x,y:hawk.y});
-  if(hawk.trail.length>35) hawk.trail.shift();
+  hawk.trail.push({x:hawk.x, y:hawk.y});
+  if(hawk.trail.length>40) hawk.trail.shift();
 
-  // catches — only in real hawk phase
+  // Catches — real hawk phase only
   if(phase==='hawk'){
     if(!player.hiding && !player.caught && dist(hawk,player)<44){
       player.caught=true;
@@ -643,7 +634,7 @@ function updateHawk(){
       player.score=Math.max(0,player.score-penalty);
       spawnFloaty(player.x,player.y-10,`-${penalty} veggies`,'#9b2020');
       warningEl.textContent='CAUGHT!';
-      setTimeout(()=>{if(hawk.active)warningEl.textContent='HAWK!';},1500);
+      setTimeout(()=>{ if(hawk.active) warningEl.textContent='HAWK!'; },1500);
     }
     rivals.forEach(r=>{
       if(!r.hiding && !r.caught && dist(hawk,r)<38){
