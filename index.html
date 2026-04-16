@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Veggie Run!</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --grass:#5a9e3a;
+  --grass-light:#6bb84a;
+  --grass-dark:#4a8430;
+  --dirt:#c8a96e;
+  --sky:#87ceeb;
+  --hud-bg:rgba(30,20,10,0.82);
+  --hud-text:#fff8e7;
+  --danger:#e53e3e;
+}
+
+body{
+  background:#2d5a1b;
+  font-family:'Nunito',sans-serif;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  overflow:hidden;
+  user-select:none;
+}
+
+#hud{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:800px;
+  max-width:98vw;
+  padding:8px 14px;
+  background:var(--hud-bg);
+  border-radius:14px 14px 0 0;
+  color:var(--hud-text);
+  font-family:'Fredoka One',cursive;
+  font-size:18px;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.hud-block{display:flex;align-items:center;gap:6px}
+.hud-label{font-size:13px;font-family:'Nunito',sans-serif;opacity:0.7;text-transform:uppercase;letter-spacing:1px}
+.hud-val{font-size:22px;color:#ffd84d}
+
+#round-badge{
+  background:#7c3aed;
+  color:#fff;
+  border-radius:20px;
+  padding:2px 14px;
+  font-size:16px;
+}
+
+#game-wrap{position:relative;width:800px;max-width:98vw}
+
+canvas{
+  display:block;
+  width:100%;
+  height:auto;
+  border-radius:0 0 14px 14px;
+  border:3px solid #2d5a1b;
+  border-top:none;
+  cursor:none;
+}
+
+/* danger vignette overlay */
+#danger-vignette{
+  position:absolute;
+  inset:0;
+  border-radius:0 0 14px 14px;
+  pointer-events:none;
+  opacity:0;
+  box-shadow:inset 0 0 80px 40px rgba(220,30,30,0.7);
+  transition:opacity 0.4s;
+  z-index:5;
+}
+#danger-vignette.active{opacity:1;animation:pulse-danger 0.8s infinite alternate}
+@keyframes pulse-danger{from{opacity:0.7}to{opacity:1}}
+
+/* overlay screens */
+#overlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  background:rgba(20,40,10,0.88);
+  border-radius:0 0 14px 14px;
+  z-index:20;
+  color:#fff8e7;
+  text-align:center;
+  padding:20px;
+}
+#overlay.hidden{display:none}
+
+#overlay h2{
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(1.8rem,5vw,3rem);
+  color:#ffd84d;
+  text-shadow:2px 2px 0 #8b4500;
+  margin-bottom:10px;
+}
+#overlay p{font-size:15px;color:#d4f0c0;max-width:480px;line-height:1.6;margin-bottom:18px}
+#overlay .scores{
+  display:flex;gap:20px;flex-wrap:wrap;justify-content:center;margin-bottom:18px
+}
+#overlay .score-card{
+  background:rgba(255,255,255,0.1);
+  border-radius:12px;
+  padding:10px 18px;
+  font-family:'Fredoka One',cursive;
+  font-size:20px;
+}
+#overlay .score-card span{display:block;font-family:'Nunito',sans-serif;font-size:12px;opacity:0.7;margin-bottom:2px}
+
+#start-btn{
+  font-family:'Fredoka One',cursive;
+  font-size:22px;
+  background:#5a9e3a;
+  color:#fff;
+  border:none;
+  border-radius:12px;
+  padding:10px 32px;
+  cursor:pointer;
+  letter-spacing:1px;
+  transition:background 0.15s,transform 0.1s;
+  box-shadow:0 4px 0 #2d5a1b;
+}
+#start-btn:hover{background:#6bb84a;transform:translateY(-2px)}
+#start-btn:active{transform:translateY(2px);box-shadow:none}
+
+#hawk-warning{
+  position:absolute;
+  top:12px;left:50%;transform:translateX(-50%);
+  font-family:'Fredoka One',cursive;
+  font-size:20px;
+  color:#fff;
+  background:rgba(180,20,20,0.9);
+  border-radius:30px;
+  padding:6px 20px;
+  z-index:10;
+  opacity:0;
+  pointer-events:none;
+  white-space:nowrap;
+  transition:opacity 0.3s;
+  letter-spacing:1px;
+}
+#hawk-warning.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div class="hud-block">
+    <div>
+      <div class="hud-label">Your veggies</div>
+      <div class="hud-val" id="hud-score">0 🥕</div>
+    </div>
+  </div>
+  <div class="hud-block">
+    <div id="round-badge">Round 1</div>
+  </div>
+  <div class="hud-block">
+    <div>
+      <div class="hud-label">Hidey houses</div>
+      <div class="hud-val" id="hud-houses">5 🏠</div>
+    </div>
+  </div>
+</div>
+
+<div id="game-wrap">
+  <canvas id="c" width="800" height="560"></canvas>
+  <div id="danger-vignette"></div>
+  <div id="hawk-warning">🦅 HAWK!</div>
+
+  <div id="overlay">
+    <h2>🐹 Veggie Run!</h2>
+    <p>Collect veggies with the arrow keys. When the hawk appears — hide in a 🏠 house! Each round there are fewer houses...</p>
+    <button id="start-btn">Start Game</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = 800, H = 560;
+
+// ── helpers ──────────────────────────────────────────────────────────────
+function rnd(a,b){return a+Math.random()*(b-a)}
+function rndInt(a,b){return Math.floor(rnd(a,b+1))}
+function dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}
+function clamp(v,lo,hi){return Math.max(lo,Math.min(hi,v))}
+
+// ── game state ────────────────────────────────────────────────────────────
+const VEGGIES = ['🥕','🥦','🌽','🥬','🍅','🫑'];
+const VEGGIE_SCORE = {'🥕':1,'🥦':2,'🌽':1,'🥬':1,'🍅':2,'🫑':2};
+const TOTAL_ROUNDS = 5;
+const BASE_HOUSES = 5; // round 1 houses
+
+let round=1, phase='title'; // phases: title, playing, hawk, hawk-grace, result, gameover
+let firstHawk=true;
+let keys={};
+let frameId;
+
+let player, rivals, veggies, houses, hawk;
+let hawkTimer=0, hawkInterval=0, hawkSpeed=0;
+let dangerEl=document.getElementById('danger-vignette');
+let warningEl=document.getElementById('hawk-warning');
+let overlay=document.getElementById('overlay');
+let scoreDisplay={};
+
+// total scores across rounds
+let playerTotal=0;
+let rivalTotals=[0,0,0];
+
+// ── grass tile pattern ────────────────────────────────────────────────────
+let grassPattern=null;
+function makeGrassPattern(){
+  const oc=document.createElement('canvas'); oc.width=40; oc.height=40;
+  const ox=oc.getContext('2d');
+  ox.fillStyle='#5a9e3a'; ox.fillRect(0,0,40,40);
+  // subtle variation blades
+  const blades=[[5,8],[12,20],[22,6],[30,15],[8,32],[28,28],[18,35],[35,5]];
+  blades.forEach(([x,y])=>{
+    ox.strokeStyle='#4a8430'; ox.lineWidth=1.5;
+    ox.beginPath(); ox.moveTo(x,y+6); ox.lineTo(x-2,y); ox.stroke();
+    ox.beginPath(); ox.moveTo(x,y+6); ox.lineTo(x+2,y+1); ox.stroke();
+  });
+  grassPattern=ctx.createPattern(oc,'repeat');
+}
+
+// ── drawing helpers ───────────────────────────────────────────────────────
+function drawEmoji(e,x,y,size,flip=false,opacity=1){
+  ctx.save();
+  ctx.globalAlpha=opacity;
+  ctx.font=`${size}px serif`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  if(flip){ctx.scale(-1,1);x=-x;}
+  ctx.fillText(e,x,y);
+  ctx.restore();
+}
+
+function drawGP(gp, isPlayer=false){
+  if(gp.hiding){
+    // ghost tint in house
+    ctx.save(); ctx.globalAlpha=0.35;
+    drawEmoji('🐹',gp.x,gp.y,22,gp.vx<0);
+    ctx.restore(); return;
+  }
+  // shadow
+  ctx.save(); ctx.globalAlpha=0.18;
+  ctx.fillStyle='#000';
+  ctx.ellipse(gp.x,gp.y+12,14,5,0,0,Math.PI*2);
+  ctx.fill(); ctx.restore();
+
+  drawEmoji('🐹',gp.x,gp.y,isPlayer?28:22,gp.vx<0);
+  if(isPlayer){
+    // player indicator arrow above
+    ctx.save();
+    ctx.font='bold 11px Nunito,sans-serif';
+    ctx.fillStyle='#ffd84d';
+    ctx.textAlign='center';
+    ctx.fillText('YOU',gp.x,gp.y-20);
+    ctx.restore();
+  }
+}
+
+function drawHouse(h){
+  ctx.save();
+  // bounce animation when hawk is near
+  let by = h.bounce ? Math.sin(Date.now()/120)*5 : 0;
+  let y = h.y + by;
+
+  // glow if bouncing
+  if(h.bounce){
+    ctx.shadowColor='#ffd84d';
+    ctx.shadowBlur=18;
+  }
+
+  // occupied?
+  if(h.occupant!==null){
+    ctx.globalAlpha=0.6;
+  }
+
+  ctx.font=`38px serif`;
+  ctx.textAlign='center';
+  ctx.textBaseline='middle';
+  ctx.fillText('🏠',h.x,y);
+
+  if(h.occupant!==null){
+    // tiny guinea pig peeking
+    ctx.globalAlpha=0.9;
+    ctx.font='14px serif';
+    ctx.fillText('🐹',h.x+10,y+4);
+  }
+  ctx.restore();
+}
+
+function drawVeggie(v){
+  if(v.collected) return;
+  // bob
+  let bob=Math.sin(Date.now()/400+v.phase)*3;
+  drawEmoji(v.type,v.x,v.y+bob,22);
+}
+
+function drawHawk(){
+  if(!hawk.active) return;
+  // shadow on ground
+  ctx.save(); ctx.globalAlpha=0.12+0.08*Math.sin(Date.now()/200);
+  ctx.fillStyle='#000';
+  ctx.ellipse(hawk.x,H*0.7,30,8,0,0,Math.PI*2);
+  ctx.fill(); ctx.restore();
+  drawEmoji('🦅',hawk.x,hawk.y,46,hawk.vx<0);
+}
+
+// ── init round ────────────────────────────────────────────────────────────
+function initRound(){
+  let numHouses = Math.max(1, BASE_HOUSES - (round-1));
+  document.getElementById('hud-houses').textContent=numHouses+' 🏠';
+  document.getElementById('round-badge').textContent='Round '+round;
+
+  // player
+  player={
+    x:W/2, y:H/2,
+    vx:0, vy:0,
+    speed:2.8,
+    score:0,
+    hiding:false,
+    houseRef:null
+  };
+
+  // rivals (3 AI guinea pigs)
+  rivals=[
+    {x:120,y:120,vx:0,vy:0,speed:1.8,score:0,hiding:false,houseRef:null,target:null,color:'#f97316'},
+    {x:W-120,y:120,vx:0,vy:0,speed:1.9,score:0,hiding:false,houseRef:null,target:null,color:'#ec4899'},
+    {x:W/2,y:H-120,vx:0,vy:0,speed:1.7,score:0,hiding:false,houseRef:null,target:null,color:'#06b6d4'},
+  ];
+
+  // veggies
+  veggies=[];
+  let numVeggies=18+round*2;
+  for(let i=0;i<numVeggies;i++) spawnVeggie();
+
+  // houses
+  houses=[];
+  let margin=60;
+  // spread houses around the map, not too close to center
+  let candidates=[
+    {x:margin,y:margin},{x:W-margin,y:margin},
+    {x:margin,y:H-margin},{x:W-margin,y:H-margin},
+    {x:W/2,y:margin},{x:W/2,y:H-margin},
+    {x:margin,y:H/2},{x:W-margin,y:H/2},
+    {x:200,y:200},{x:W-200,y:200},
+    {x:200,y:H-200},{x:W-200,y:H-200},
+  ];
+  // shuffle
+  candidates.sort(()=>Math.random()-0.5);
+  for(let i=0;i<numHouses;i++){
+    houses.push({x:candidates[i].x, y:candidates[i].y, occupant:null, bounce:false});
+  }
+
+  // hawk
+  hawk={active:false,x:-100,y:80+Math.random()*120,vx:3,vy:0,done:false};
+  hawkInterval = 8000 - round*800; // hawks come more often each round
+  hawkTimer = hawkInterval;
+
+  dangerEl.classList.remove('active');
+  warningEl.classList.remove('show');
+  phase='playing';
+}
+
+function spawnVeggie(){
+  let margin=40;
+  veggies.push({
+    x:margin+Math.random()*(W-margin*2),
+    y:margin+Math.random()*(H-margin*2),
+    type:VEGGIES[rndInt(0,VEGGIES.length-1)],
+    collected:false,
+    phase:Math.random()*Math.PI*2
+  });
+}
+
+// ── AI ────────────────────────────────────────────────────────────────────
+function updateRival(r){
+  if(r.hiding) return;
+
+  if(phase==='hawk'||phase==='hawk-grace'){
+    // find nearest free house
+    let best=null,bd=Infinity;
+    houses.forEach(h=>{
+      if(h.occupant===null||h.occupant===r){
+        let d=dist(r,h);
+        if(d<bd){bd=d;best=h;}
+      }
+    });
+    if(best){
+      moveToward(r,best.x,best.y);
+      if(dist(r,best)<20&&best.occupant===null){
+        hideIn(r,best);
+      }
+    }
+    return;
+  }
+
+  // find nearest veggie
+  if(!r.target||r.target.collected){
+    let best=null,bd=Infinity;
+    veggies.forEach(v=>{
+      if(!v.collected){let d=dist(r,v);if(d<bd){bd=d;best=v;}}
+    });
+    r.target=best;
+  }
+  if(r.target){
+    moveToward(r,r.target.x,r.target.y);
+    if(dist(r,r.target)<20){
+      r.target.collected=true;
+      r.score+=VEGGIE_SCORE[r.target.type]||1;
+      r.target=null;
+    }
+  }
+  clampToWorld(r);
+}
+
+function moveToward(e,tx,ty){
+  let dx=tx-e.x, dy=ty-e.y, d=Math.hypot(dx,dy);
+  if(d<1) return;
+  e.vx=dx/d*e.speed; e.vy=dy/d*e.speed;
+  e.x+=e.vx; e.y+=e.vy;
+}
+
+function hideIn(entity,house){
+  house.occupant=entity;
+  entity.hiding=true;
+  entity.houseRef=house;
+  entity.x=house.x; entity.y=house.y;
+}
+
+function leaveHouse(entity){
+  if(entity.houseRef){entity.houseRef.occupant=null;}
+  entity.hiding=false; entity.houseRef=null;
+}
+
+function clampToWorld(e){
+  e.x=clamp(e.x,20,W-20);
+  e.y=clamp(e.y,20,H-20);
+}
+
+// ── hawk logic ────────────────────────────────────────────────────────────
+function launchHawk(){
+  let fromLeft=Math.random()<0.5;
+  hawk.x=fromLeft?-60:W+60;
+  hawk.y=60+Math.random()*(H*0.5);
+  hawk.vx=fromLeft?3.5+round*0.3:-(3.5+round*0.3);
+  hawk.active=true;
+  hawk.done=false;
+
+  dangerEl.classList.add('active');
+  warningEl.classList.add('show');
+  houses.forEach(h=>h.bounce=true);
+
+  if(firstHawk){
+    phase='hawk-grace';
+    firstHawk=false;
+    // grace: 5s before hawk kills
+    setTimeout(()=>{if(phase==='hawk-grace') phase='hawk';},5000);
+  } else {
+    phase='hawk';
+  }
+}
+
+function updateHawk(){
+  if(!hawk.active) return;
+  hawk.x+=hawk.vx;
+  // hawk gone off screen
+  if(hawk.x<-100||hawk.x>W+100){
+    hawk.active=false;
+    dangerEl.classList.remove('active');
+    warningEl.classList.remove('show');
+    houses.forEach(h=>{h.bounce=false; h.occupant=null;});
+    // release everyone
+    if(!player.hiding) {} else leaveHouse(player);
+    rivals.forEach(r=>{if(r.hiding)leaveHouse(r);});
+    phase='playing';
+    hawkTimer=hawkInterval;
+    return;
+  }
+
+  // catch unsheltered player in hawk phase
+  if(phase==='hawk'&&!player.hiding){
+    if(Math.abs(hawk.x-player.x)<50&&Math.abs(hawk.y-player.y)<60){
+      // player caught! lose 3 veggies
+      player.score=Math.max(0,player.score-3);
+      // bounce player away
+      player.x=clamp(player.x+rnd(-80,80),40,W-40);
+      player.y=clamp(player.y+rnd(-80,80),40,H-40);
+      showCaughtEffect();
+    }
+  }
+}
+
+function showCaughtEffect(){
+  warningEl.textContent='😱 CAUGHT! -3 veggies';
+  warningEl.classList.add('show');
+  setTimeout(()=>{warningEl.textContent='🦅 HAWK!';},1800);
+}
+
+// ── player input ──────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  // prevent page scroll
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+});
+document.addEventListener('keyup',e=>keys[e.code]=false);
+
+function updatePlayer(){
+  if(player.hiding){
+    // press any arrow to leave house (only when safe)
+    if(phase==='playing'&&(keys.ArrowUp||keys.ArrowDown||keys.ArrowLeft||keys.ArrowRight)){
+      leaveHouse(player);
+    }
+    return;
+  }
+
+  let dx=0,dy=0;
+  if(keys.ArrowLeft||keys.KeyA){dx=-1;}
+  if(keys.ArrowRight||keys.KeyD){dx=1;}
+  if(keys.ArrowUp||keys.KeyW){dy=-1;}
+  if(keys.ArrowDown||keys.KeyS){dy=1;}
+  if(dx&&dy){dx*=0.707;dy*=0.707;}
+
+  player.vx=dx*player.speed;
+  player.vy=dy*player.speed;
+  player.x+=player.vx;
+  player.y+=player.vy;
+  clampToWorld(player);
+
+  // collect veggies
+  veggies.forEach(v=>{
+    if(!v.collected&&dist(player,v)<22){
+      v.collected=true;
+      player.score+=VEGGIE_SCORE[v.type]||1;
+      document.getElementById('hud-score').textContent=player.score+' 🥕';
+    }
+  });
+
+  // enter house
+  if(phase==='hawk'||phase==='hawk-grace'){
+    houses.forEach(h=>{
+      if(h.occupant===null&&dist(player,h)<28){
+        hideIn(player,h);
+      }
+    });
+  }
+}
+
+// ── check round end ───────────────────────────────────────────────────────
+function checkRoundEnd(){
+  let remaining=veggies.filter(v=>!v.collected).length;
+  if(remaining===0){
+    endRound();
+  }
+}
+
+function endRound(){
+  // save scores
+  playerTotal+=player.score;
+  rivals.forEach((r,i)=>rivalTotals[i]+=r.score);
+
+  if(round>=TOTAL_ROUNDS){
+    showGameOver();
+  } else {
+    showRoundResult();
+  }
+}
+
+function showRoundResult(){
+  phase='result';
+  dangerEl.classList.remove('active');
+  warningEl.classList.remove('show');
+
+  let all=[
+    {name:'You',score:player.score,total:playerTotal,emoji:'🐹'},
+    {name:'Ginger',score:rivals[0].score,total:rivalTotals[0],emoji:'🐹'},
+    {name:'Rosie',score:rivals[1].score,total:rivalTotals[1],emoji:'🐹'},
+    {name:'Biscuit',score:rivals[2].score,total:rivalTotals[2],emoji:'🐹'},
+  ].sort((a,b)=>b.score-a.score);
+
+  let nextHouses=Math.max(1,BASE_HOUSES-(round));
+  let html=`<h2>Round ${round} done!</h2>
+    <p>Next round: only <strong>${nextHouses} hidey house${nextHouses>1?'s':''}</strong>!</p>
+    <div class="scores">
+    ${all.map(p=>`<div class="score-card">${p.emoji} ${p.name}<br><span>this round</span>+${p.score} 🥕<br><span>total</span>${p.total} 🥕</div>`).join('')}
+    </div>
+    <button id="start-btn">Round ${round+1} →</button>`;
+  overlay.innerHTML=html;
+  overlay.classList.remove('hidden');
+  document.getElementById('start-btn').addEventListener('click',()=>{
+    round++;
+    overlay.classList.add('hidden');
+    initRound();
+  });
+}
+
+function showGameOver(){
+  phase='gameover';
+  dangerEl.classList.remove('active');
+  warningEl.classList.remove('show');
+
+  let all=[
+    {name:'You',total:playerTotal,emoji:'🐹'},
+    {name:'Ginger',total:rivalTotals[0],emoji:'🐹'},
+    {name:'Rosie',total:rivalTotals[1],emoji:'🐹'},
+    {name:'Biscuit',total:rivalTotals[2],emoji:'🐹'},
+  ].sort((a,b)=>b.total-a.total);
+
+  let winner=all[0];
+  let playerWon=winner.name==='You';
+
+  let html=`<h2>${playerWon?'🏆 You win!':'😢 '+winner.name+' wins!'}</h2>
+    <p>${playerWon?'You collected the most veggies across all '+TOTAL_ROUNDS+' rounds. Champion guinea pig!':'Better luck next time! Keep practicing your veggie-grabbing skills.'}</p>
+    <div class="scores">
+    ${all.map((p,i)=>`<div class="score-card">${i===0?'🏆':i===1?'🥈':i===2?'🥉':''}${p.emoji} ${p.name}<br><span>total veggies</span>${p.total} 🥕</div>`).join('')}
+    </div>
+    <button id="start-btn">Play Again</button>`;
+  overlay.innerHTML=html;
+  overlay.classList.remove('hidden');
+  document.getElementById('start-btn').addEventListener('click',()=>{
+    round=1; playerTotal=0; rivalTotals=[0,0,0]; firstHawk=true;
+    overlay.classList.add('hidden');
+    document.getElementById('hud-score').textContent='0 🥕';
+    initRound();
+  });
+}
+
+// ── background ────────────────────────────────────────────────────────────
+function drawBg(){
+  ctx.fillStyle=grassPattern||'#5a9e3a';
+  ctx.fillRect(0,0,W,H);
+
+  // subtle path/dirt patches
+  ctx.save(); ctx.globalAlpha=0.18;
+  ctx.fillStyle='#c8a96e';
+  [[W*0.3,H*0.4,120,60],[W*0.7,H*0.7,90,50],[W*0.15,H*0.75,70,40]].forEach(([x,y,rw,rh])=>{
+    ctx.beginPath(); ctx.ellipse(x,y,rw,rh,0.3,0,Math.PI*2); ctx.fill();
+  });
+  ctx.restore();
+}
+
+// ── main loop ─────────────────────────────────────────────────────────────
+let last=0;
+function loop(ts){
+  let dt=ts-last; last=ts;
+  frameId=requestAnimationFrame(loop);
+
+  if(phase==='title'||phase==='result'||phase==='gameover') return;
+
+  // hawk timer
+  if(phase==='playing'){
+    hawkTimer-=dt;
+    if(hawkTimer<=0&&!hawk.active) launchHawk();
+  }
+
+  updatePlayer();
+  rivals.forEach(r=>updateRival(r));
+  updateHawk();
+  if(phase==='playing') checkRoundEnd();
+
+  // draw
+  drawBg();
+  veggies.forEach(v=>drawVeggie(v));
+  houses.forEach(h=>drawHouse(h));
+  rivals.forEach(r=>drawGP(r,false));
+  drawGP(player,true);
+  drawHawk();
+
+  // HUD score live
+  document.getElementById('hud-score').textContent=player.score+' 🥕';
+}
+
+// ── start ─────────────────────────────────────────────────────────────────
+makeGrassPattern();
+frameId=requestAnimationFrame(loop);
+
+document.getElementById('start-btn').addEventListener('click',()=>{
+  round=1; playerTotal=0; rivalTotals=[0,0,0]; firstHawk=true;
+  overlay.classList.add('hidden');
+  initRound();
+});
+</script>
+</body>
+</html>
